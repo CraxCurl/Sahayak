@@ -1,5 +1,5 @@
 import { ExtensionMessage } from '@shared/types/messages';
-import { OllamaGemmaClient } from '@ai/api/ollama-client';
+import { OllamaGemmaClient } from '@ai/client/ollama-client';
 import { SAHAYAK_CONSTANTS } from '@shared/constants';
 
 console.log('[Sahayak Background Worker] Service Worker Initialized');

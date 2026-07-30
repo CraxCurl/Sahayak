@@ -1,0 +1,5 @@
+export const PROMPT_VERSIONS = {
+  PAGE_ANALYSIS: 'v1.2.0',
+  CHAT_QUERY: 'v1.2.0',
+  SYSTEM_INSTRUCTION: 'v1.0.0',
+};

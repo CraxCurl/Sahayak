@@ -22,7 +22,7 @@ import {
 import { MessageRouter } from '../messaging/message-router';
 import { ChromeStorageService } from '../storage/chrome-storage';
 import { ExtractedPageData } from '@shared/types/messages';
-import { OllamaGemmaClient, OllamaHealthResult } from '@ai/api/ollama-client';
+import { OllamaGemmaClient, OllamaHealthResult } from '@ai/client/ollama-client';
 import '../../../assets/styles/global.css';
 
 export const PopupApp: React.FC = () => {

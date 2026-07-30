@@ -1,4 +1,4 @@
-import { CSSInjector } from '../injector/css-injector';
+import { CSSInjector } from '../css-injector/css-injector';
 
 export interface AccessibilityConfig {
   highContrast: boolean;

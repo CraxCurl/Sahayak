@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { cleanRawJsonString, parseAndValidateGemmaOutput } from '@ai/parser/json-parser';
-import { AIDecisionEngine } from '@ai/decision/decision-engine';
-import { GEMMA3_PROMPTS } from '@ai/prompts/gemma3-prompts';
-import { SahayakActionManifest } from '@shared/types/ai-actions';
+import { extractAndRepairJson, parseAndValidateGemmaOutput } from '@ai/parser/json-extractor';
+import { ConflictResolver } from '@ai/decision/conflict-resolver';
+import { buildPageAnalysisPrompt } from '@ai/prompts/page-analysis.prompt';
+import { PageAdaptationManifest } from '@ai/schemas/page-adaptation.schema';
 
 describe('Developer 3: AI Module Tests', () => {
   describe('JSON Parser & Cleaner', () => {
     it('should strip markdown fenced code blocks from Gemma output', () => {
       const rawWithFences = `\`\`\`json\n{\n  "version": "1.0",\n  "pageUrl": "https://example.com",\n  "summary": "Test",\n  "actions": []\n}\n\`\`\``;
-      const cleaned = cleanRawJsonString(rawWithFences);
+      const cleaned = extractAndRepairJson(rawWithFences);
       expect(cleaned).not.toContain('```');
       expect(cleaned).toContain('"version": "1.0"');
     });
@@ -20,11 +20,11 @@ describe('Developer 3: AI Module Tests', () => {
         summary: 'Adaptation summary',
         actions: [
           {
-            id: 'act-1',
             type: 'HIGHLIGHT_ELEMENT',
             selector: 'h1',
             confidence: 0.9,
             color: '#38bdf8',
+            reasoning: 'Highlight title',
           },
         ],
       });
@@ -36,68 +36,67 @@ describe('Developer 3: AI Module Tests', () => {
     });
   });
 
-  describe('AI Decision Engine', () => {
+  describe('AI Conflict Resolver', () => {
     it('should filter out actions below the confidence threshold', () => {
-      const decisionEngine = new AIDecisionEngine({ minConfidenceThreshold: 0.8 });
-      const rawManifest: SahayakActionManifest = {
+      const resolver = new ConflictResolver(0.8);
+      const rawManifest: PageAdaptationManifest = {
         version: '1.0',
         pageUrl: 'https://example.com',
         summary: 'Testing filtering',
         actions: [
           {
-            id: 'act-high',
             type: 'HIGHLIGHT_ELEMENT',
             selector: '.btn',
             confidence: 0.95,
             color: '#38bdf8',
+            reasoning: 'High confidence action',
           },
           {
-            id: 'act-low',
             type: 'HIGHLIGHT_ELEMENT',
             selector: '.footer',
             confidence: 0.4,
             color: '#38bdf8',
+            reasoning: 'Low confidence action',
           },
         ],
       };
 
-      const refined = decisionEngine.processManifest(rawManifest);
+      const refined = resolver.processManifest(rawManifest);
       expect(refined.actions.length).toBe(1);
-      expect(refined.actions[0].id).toBe('act-high');
+      expect(refined.actions[0].selector).toBe('.btn');
     });
 
-    it('should resolve conflicts when element has both HIDE and HIGHLIGHT actions', () => {
-      const decisionEngine = new AIDecisionEngine();
-      const rawManifest: SahayakActionManifest = {
+    it('should deduplicate actions targeting the exact same selector & type', () => {
+      const resolver = new ConflictResolver(0.5);
+      const rawManifest: PageAdaptationManifest = {
         version: '1.0',
         pageUrl: 'https://example.com',
-        summary: 'Testing conflict resolution',
+        summary: 'Testing deduplication',
         actions: [
           {
-            id: 'act-hide',
-            type: 'HIDE_ELEMENT',
-            selector: '#ad-banner',
-            confidence: 0.9,
-          },
-          {
-            id: 'act-highlight',
             type: 'HIGHLIGHT_ELEMENT',
             selector: '#ad-banner',
-            confidence: 0.85,
-            color: '#38bdf8',
+            confidence: 0.9,
+            reasoning: 'Highlight banner',
+          },
+          {
+            type: 'HIGHLIGHT_ELEMENT',
+            selector: '#ad-banner',
+            confidence: 0.7,
+            reasoning: 'Duplicate action',
           },
         ],
       };
 
-      const refined = decisionEngine.processManifest(rawManifest);
+      const refined = resolver.processManifest(rawManifest);
       expect(refined.actions.length).toBe(1);
-      expect(refined.actions[0].type).toBe('HIDE_ELEMENT');
+      expect(refined.actions[0].confidence).toBe(0.9);
     });
   });
 
   describe('Gemma 3 Prompts', () => {
     it('should format page analysis prompt correctly', () => {
-      const prompt = GEMMA3_PROMPTS.PAGE_ANALYSIS_PROMPT('https://test.com', 'Page Summary', '{}');
+      const prompt = buildPageAnalysisPrompt('https://test.com', 'Page Summary', '{}');
       expect(prompt).toContain('URL: https://test.com');
       expect(prompt).toContain('Webpage Context Extract:');
     });

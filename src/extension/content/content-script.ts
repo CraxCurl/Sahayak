@@ -1,5 +1,5 @@
 import { PageAnalyzer } from '@dom/analyzer/page-analyzer';
-import { SafeDOMExecutor } from '@dom/engine/action-executor';
+import { SafeDOMExecutor } from '@dom/executor/safe-dom-executor';
 import { ChatOverlayManager } from '@dom/overlays/chat-overlay';
 import { ExtensionMessage } from '@shared/types/messages';
 
@@ -77,7 +77,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   analyzer,
   chatOverlay,
   health: async () => {
-    const { OllamaGemmaClient } = await import('@ai/api/ollama-client');
+    const { OllamaGemmaClient } = await import('@ai/client/ollama-client');
     const client = new OllamaGemmaClient();
     const result = await client.checkOllamaHealth();
     console.log('[Sahayak Health Check Result]:', result);
@@ -93,6 +93,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       simplifiedContent,
       originalTextSnippet: '',
       reasoning: 'Console manual action',
+      priority: 'medium',
     }),
   hideElement: (selector: string) =>
     executor.executeSingleAction({
@@ -101,6 +102,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       selector,
       confidence: 1.0,
       reasoning: 'Console manual action',
+      priority: 'medium',
     }),
   autofill: (fieldValues: Record<string, string>) =>
     executor.executeSingleAction({
@@ -110,6 +112,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       confidence: 1.0,
       fieldValues,
       reasoning: 'Console autofill action',
+      priority: 'medium',
     }),
   injectCSS: (cssRules: string, scopeId = 'console-injected') =>
     executor.getCSSInjector().injectCSS(scopeId, cssRules),
