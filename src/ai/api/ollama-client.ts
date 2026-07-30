@@ -156,22 +156,49 @@ export class OllamaGemmaClient {
       domain = pageUrl || 'this website';
     }
 
+    const lines = (textSummary || '').split('\n');
     const titleLine =
-      (textSummary || '')
-        .split('\n')
-        .find(l => l.toLowerCase().startsWith('page title:') || l.toLowerCase().startsWith('title:')) ||
+      lines.find(l => l.toLowerCase().startsWith('page title:') || l.toLowerCase().startsWith('title:')) ||
       '';
     const cleanTitle = titleLine.replace(/^(page title:|title:)/i, '').trim() || domain;
 
-    const headingsLine =
-      (textSummary || '').split('\n').find(l => l.toLowerCase().includes('headings:')) || '';
+    const headingsLine = lines.find(l => l.toLowerCase().includes('headings:')) || '';
     const cleanHeadings = headingsLine.replace(/^(all headings:|headings:)/i, '').trim();
 
-    let answer = `I analyzed "${cleanTitle}" (${domain}).`;
-    let highlightSelector: string | undefined = undefined;
+    const buttonsLine = lines.find(l => l.toLowerCase().includes('buttons:')) || '';
+    const cleanButtons = buttonsLine.replace(/^(all interactive buttons:|buttons:)/i, '').trim();
+
+    const inputsLine = lines.find(l => l.toLowerCase().includes('inputs & fields:')) || '';
+    const cleanInputs = inputsLine.replace(/^(all form inputs & fields:|inputs:)/i, '').trim();
+
+    const textExtractIndex = lines.findIndex(l => l.toLowerCase().includes('text content:'));
+    const bodyText = textExtractIndex !== -1 ? lines.slice(textExtractIndex + 1).join(' ').trim() : textSummary;
+
+    let answer = `📌 Webpage Analysis: "${cleanTitle}" (${domain})\n\n`;
+
+    if (cleanHeadings) {
+      const mainTopics = cleanHeadings
+        .split(' | ')
+        .filter(Boolean)
+        .slice(0, 5);
+      answer += `📂 Key Sections & Topics:\n• ${mainTopics.join('\n• ')}\n\n`;
+    }
+
+    if (cleanButtons || cleanInputs) {
+      answer += `⚙️ Interactive Page Controls:\n`;
+      if (cleanButtons) answer += `• Buttons: ${cleanButtons.slice(0, 140)}\n`;
+      if (cleanInputs) answer += `• Input Fields: ${cleanInputs.slice(0, 140)}\n`;
+      answer += `\n`;
+    }
+
+    if (bodyText) {
+      answer += `📖 Content Summary:\n${bodyText.slice(0, 320)}...\n\n`;
+    }
+
+    let highlightSelector: string | undefined = 'h1, header, main';
 
     if (qLower.includes('upload') || qLower.includes('document') || qLower.includes('file')) {
-      answer = `Checking file upload options on "${cleanTitle}". Look for upload buttons or form dropzones on ${domain}.`;
+      answer += `📍 Specific Guidance: Look for file attachment or document upload sections highlighted on the page.`;
       highlightSelector = '#btn-upload-docs, input[type="file"], .document-upload-box, button';
     } else if (
       qLower.includes('required') ||
@@ -179,21 +206,11 @@ export class OllamaGemmaClient {
       qLower.includes('input') ||
       qLower.includes('form')
     ) {
-      answer = `Scanned form fields on "${cleanTitle}" (${domain}). Ensure all highlighted mandatory inputs are accurately filled out.`;
+      answer += `📍 Specific Guidance: Scanned mandatory input fields on this page. Highlighted form controls are ready for input.`;
       highlightSelector = 'input[required], select[required], textarea[required], input';
-    } else if (
-      qLower.includes('about') ||
-      qLower.includes('what') ||
-      qLower.includes('summary') ||
-      qLower.includes('explain')
-    ) {
-      answer = `This page is "${cleanTitle}" on ${domain}. ${
-        cleanHeadings ? 'Main topics: ' + cleanHeadings.slice(0, 180) + '.' : ''
-      }`;
-      highlightSelector = 'h1, h2, header, main';
     } else {
-      answer = `Sahayak AI Assistant evaluated your query "${question}" for "${cleanTitle}" (${domain}).`;
-      highlightSelector = 'h1, form, button';
+      answer += `📍 Analysis completed for your question: "${question}".`;
+      highlightSelector = 'h1, h2, form, button';
     }
 
     return { answer, highlightSelector };

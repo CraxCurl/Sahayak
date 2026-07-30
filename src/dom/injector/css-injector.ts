@@ -58,27 +58,50 @@ export class CSSInjector {
         100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
       }
       
+      body {
+        line-height: 1.7 !important;
+        letter-spacing: 0.01em !important;
+        text-rendering: optimizeLegibility !important;
+      }
+
+      p {
+        margin-bottom: 1rem !important;
+      }
+
+      h1, h2, h3 {
+        line-height: 1.3 !important;
+        margin-bottom: 0.75rem !important;
+      }
+
       .sahayak-highlighted-element {
         animation: sahayak-pulse-highlight 2s infinite !important;
-        border-radius: 4px !important;
+        border-radius: 6px !important;
+        outline: 3px solid #38bdf8 !important;
+        outline-offset: 2px !important;
         transition: all 0.3s ease !important;
       }
       
       .sahayak-simplified-badge {
         display: inline-block !important;
-        background-color: rgba(56, 189, 248, 0.15) !important;
-        border-left: 3px solid #38bdf8 !important;
-        padding: 4px 8px !important;
-        margin: 2px 0 !important;
-        border-radius: 0 4px 4px 0 !important;
+        background-color: rgba(56, 189, 248, 0.12) !important;
+        border-left: 4px solid #38bdf8 !important;
+        padding: 6px 12px !important;
+        margin: 4px 0 !important;
+        border-radius: 0 8px 8px 0 !important;
         font-family: inherit !important;
-        line-height: 1.5 !important;
+        line-height: 1.6 !important;
+        color: inherit !important;
       }
 
       .sahayak-autofilled-field {
         background-color: rgba(34, 197, 94, 0.1) !important;
         border: 2px solid #22c55e !important;
         transition: background-color 0.5s ease !important;
+      }
+
+      button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+        outline: 3px solid #38bdf8 !important;
+        outline-offset: 2px !important;
       }
     `;
     this.injectCSS('base-global-styles', baseCSS);
