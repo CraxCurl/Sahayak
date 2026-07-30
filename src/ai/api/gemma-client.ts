@@ -1,16 +1,16 @@
-import { GEMMA_PROMPTS } from '../prompts/gemma-templates';
-import { parseAndValidateGemmaOutput } from '../parser/json-parser';
+import { OllamaGemmaClient } from './ollama-client';
 import { SahayakActionManifest } from '@shared/types/ai-actions';
 
+/**
+ * Local-First Gemma Client.
+ * All AI inferences are strictly executed via Ollama running locally at http://localhost:11434.
+ * Cloud APIs, API keys, and external network requests are strictly disabled.
+ */
 export class GemmaClient {
-  private apiKey: string;
-  private endpoint: string;
+  private ollamaClient: OllamaGemmaClient;
 
-  constructor(apiKey: string, endpoint?: string) {
-    this.apiKey = apiKey;
-    this.endpoint =
-      endpoint ||
-      'https://generativelanguage.googleapis.com/v1beta/models/gemma-7b-it:generateContent';
+  constructor(baseUrl = 'http://localhost:11434', model = 'gemma3:4b') {
+    this.ollamaClient = new OllamaGemmaClient(baseUrl, model);
   }
 
   public async generatePageAdaptation(
@@ -18,49 +18,14 @@ export class GemmaClient {
     textSummary: string,
     userPreferences: Record<string, unknown>
   ): Promise<SahayakActionManifest> {
-    if (!this.apiKey) {
-      return this.getMockManifest(pageUrl);
-    }
-
-    const prompt = GEMMA_PROMPTS.PAGE_ANALYSIS_PROMPT(
-      pageUrl,
-      textSummary,
-      JSON.stringify(userPreferences)
-    );
-
-    const response = await fetch(`${this.endpoint}?key=${this.apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        systemInstruction: { parts: [{ text: GEMMA_PROMPTS.SYSTEM_INSTRUCTION }] },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemma API request failed with status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    return parseAndValidateGemmaOutput(rawText);
+    return this.ollamaClient.generatePageAdaptation(pageUrl, textSummary, userPreferences);
   }
 
-  private getMockManifest(pageUrl: string): SahayakActionManifest {
-    return {
-      version: '1.0',
-      pageUrl,
-      summary: 'Mock Gemma response generated for testing',
-      actions: [
-        {
-          id: 'mock-action-1',
-          type: 'HIGHLIGHT_ELEMENT',
-          selector: 'h1, h2',
-          confidence: 0.9,
-          color: '#bae6fd',
-          reasoning: 'Highlighted key headings for improved scanning readability',
-        },
-      ],
-    };
+  public async askPageQuestion(
+    pageUrl: string,
+    textSummary: string,
+    question: string
+  ): Promise<{ answer: string; highlightSelector?: string }> {
+    return this.ollamaClient.askPageQuestion(pageUrl, textSummary, question);
   }
 }

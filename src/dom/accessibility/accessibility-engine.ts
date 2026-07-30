@@ -5,11 +5,13 @@ export interface AccessibilityConfig {
   fontSizeScale: number; // e.g. 1.0, 1.25, 1.5
   letterSpacingPx: number;
   enhanceFocus: boolean;
+  reducedMotion: boolean;
 }
 
 export class AccessibilityEngine {
   private cssInjector: CSSInjector;
   private isHighContrastActive = false;
+  private isReducedMotionActive = false;
   private currentFontScale = 1.0;
 
   constructor(cssInjector?: CSSInjector) {
@@ -74,6 +76,26 @@ export class AccessibilityEngine {
   }
 
   /**
+   * Toggle Reduced Motion across webpage transitions and keyframes.
+   */
+  public setReducedMotion(enable: boolean): void {
+    this.isReducedMotionActive = enable;
+    if (enable) {
+      const motionCSS = `
+        *, ::before, ::after {
+          animation-duration: 0.001s !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001s !important;
+          scroll-behavior: auto !important;
+        }
+      `;
+      this.cssInjector.injectCSS('reduced-motion-override', motionCSS);
+    } else {
+      this.cssInjector.removeCSS('reduced-motion-override');
+    }
+  }
+
+  /**
    * Enhance keyboard focus outlines for accessibility compliance.
    */
   public setEnhancedFocus(enable: boolean): void {
@@ -96,7 +118,7 @@ export class AccessibilityEngine {
    */
   public applyAriaFixes(fixes: Record<string, string>): void {
     Object.entries(fixes).forEach(([selector, ariaLabel]) => {
-      document.querySelectorAll(selector).forEach(el => {
+      document.querySelectorAll(selector).forEach((el) => {
         el.setAttribute('aria-label', ariaLabel);
         el.setAttribute('data-sahayak-aria-fixed', 'true');
       });
@@ -110,8 +132,9 @@ export class AccessibilityEngine {
     this.setHighContrast(false);
     this.setFontScale(1.0);
     this.setEnhancedFocus(false);
+    this.setReducedMotion(false);
 
-    document.querySelectorAll('[data-sahayak-aria-fixed]').forEach(el => {
+    document.querySelectorAll('[data-sahayak-aria-fixed]').forEach((el) => {
       el.removeAttribute('aria-label');
       el.removeAttribute('data-sahayak-aria-fixed');
     });
@@ -119,6 +142,10 @@ export class AccessibilityEngine {
 
   public isContrastActive(): boolean {
     return this.isHighContrastActive;
+  }
+
+  public isMotionReduced(): boolean {
+    return this.isReducedMotionActive;
   }
 
   public getFontScale(): number {
