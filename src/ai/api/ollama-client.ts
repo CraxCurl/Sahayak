@@ -1,14 +1,17 @@
 import { GEMMA3_PROMPTS } from '../prompts/gemma3-prompts';
 import { parseAndValidateGemmaOutput } from '../parser/json-parser';
+import { AIDecisionEngine } from '../decision/decision-engine';
 import { SahayakActionManifest } from '@shared/types/ai-actions';
 
 export class OllamaGemmaClient {
   private baseUrl: string;
   private model: string;
+  private decisionEngine: AIDecisionEngine;
 
   constructor(baseUrl = 'http://localhost:11434', model = 'gemma3:4b') {
     this.baseUrl = baseUrl;
     this.model = model;
+    this.decisionEngine = new AIDecisionEngine();
   }
 
   public async generatePageAdaptation(
@@ -41,7 +44,10 @@ export class OllamaGemmaClient {
 
       const data = await response.json();
       const rawResponse = data.response || '';
-      return parseAndValidateGemmaOutput(rawResponse);
+      const rawManifest = parseAndValidateGemmaOutput(rawResponse);
+
+      // Process raw manifest through AI Decision Engine (filtering, conflict resolution, ranking)
+      return this.decisionEngine.processManifest(rawManifest);
     } catch (err) {
       console.warn(
         '[Ollama Client] Could not connect to local Ollama server, falling back to mock response:',
@@ -52,7 +58,7 @@ export class OllamaGemmaClient {
   }
 
   private getFallbackMockManifest(pageUrl: string): SahayakActionManifest {
-    return {
+    const rawMock: SahayakActionManifest = {
       version: '1.0',
       pageUrl,
       summary: 'Fallback response generated locally (Ollama offline)',
@@ -67,5 +73,6 @@ export class OllamaGemmaClient {
         },
       ],
     };
+    return this.decisionEngine.processManifest(rawMock);
   }
 }
