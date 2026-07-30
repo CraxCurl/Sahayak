@@ -235,14 +235,13 @@ npm run build
 
 ## ⚠️ Troubleshooting
 
-| Problem | Solution |
-|---------|----------|
-| **"Extract" button shows error** | Make sure you're on a regular webpage (not `chrome://` or `edge://` pages). Reload the tab and try again. |
-| **"Ollama model returned an invalid response"** | Ensure Ollama is running (`ollama serve`) and the model is pulled (`ollama list`). |
-| **Settings gear does nothing** | Ensure the extension is loaded in Developer Mode and `options_page` is declared in `manifest.json`. |
-| **Connection refused on remote host** | Check that `OLLAMA_HOST=0.0.0.0:11434` is set, Ollama is restarted, and firewall allows port 11434. |
-| **Extension icon not appearing** | Click the puzzle piece icon in Chrome toolbar → pin Sahayak. |
-| **Content script not injecting** | The extension cannot run on Chrome internal pages (`chrome://`, `chrome-extension://`). Navigate to a normal website. |
+| Problem | Root Cause | Solution / Exact Command |
+|---------|------------|--------------------------|
+| **"Ollama Not Running" Badge** | Ollama service is stopped or port 11434 is blocked. | **Windows**: `$env:OLLAMA_ORIGINS="chrome-extension://*"; ollama serve`<br>**Mac/Linux**: `OLLAMA_ORIGINS="chrome-extension://*" ollama serve` |
+| **"Model gemma3:4b Not Found" Badge** | Ollama server is up, but Gemma 3 model has not been downloaded. | Run: `ollama pull gemma3:4b` |
+| **CORS Connection Refused** | Chrome Extension origin blocked by Ollama default CORS policy. | Set environment variable `OLLAMA_ORIGINS="chrome-extension://*"` before launching `ollama serve`. |
+| **Chat Response Stopped / Timed Out** | MV3 Service worker unloaded during multi-second LLM query. | Fixed via `sahayak-chat-port` long-lived connection & 30s timeout retry policy in v1.0+. |
+| **Content Script Not Injecting** | Attempting to run on browser internal page. | Navigate to a standard webpage (`https://...`). Chrome blocks extensions on `chrome://` and `chrome-extension://` origins. |
 
 ---
 
