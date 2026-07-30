@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener(
       return true;
     }
 
-    if (message.type === 'AI_RUN_ANALYSIS') {
+        if (message.type === 'AI_RUN_ANALYSIS') {
       const { textSummary, userPreferences } = message.payload;
       const senderTabId = sender.tab?.id;
       const pageUrl = sender.tab?.url || 'https://unknown';
@@ -37,12 +37,20 @@ chrome.runtime.onMessage.addListener(
             textSummary,
             userPreferences
           );
-          if (senderTabId) {
-            chrome.tabs.sendMessage(senderTabId, {
+
+          let targetTabId = senderTabId;
+          if (!targetTabId) {
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            targetTabId = activeTab?.id;
+          }
+
+          if (targetTabId) {
+            chrome.tabs.sendMessage(targetTabId, {
               type: 'AI_ACTIONS_READY',
               payload: { manifest },
             });
           }
+
           sendResponse({ success: true, manifest });
         } catch (err) {
           console.error('[Sahayak Background Worker] Ollama analysis error:', err);
@@ -51,6 +59,53 @@ chrome.runtime.onMessage.addListener(
       });
 
       return true; // Asynchronous response channel
+    }
+
+    if (message.type === 'CHAT_QUERY_REQUEST') {
+      const { question, pageUrl, textSummary } = message.payload;
+      const senderTabId = sender.tab?.id;
+
+      chrome.storage.local.get([SAHAYAK_CONSTANTS.STORAGE_KEYS.OLLAMA_URL], async items => {
+        const configuredUrl =
+          (items[SAHAYAK_CONSTANTS.STORAGE_KEYS.OLLAMA_URL] as string) ||
+          import.meta.env.VITE_OLLAMA_URL ||
+          'http://localhost:11434';
+
+        const client = new OllamaGemmaClient(configuredUrl);
+
+        try {
+          const res = await client.askPageQuestion(pageUrl, textSummary, question);
+
+          if (res.highlightSelector && senderTabId) {
+            chrome.tabs.sendMessage(senderTabId, {
+              type: 'HIGHLIGHT_TARGET_ELEMENT',
+              payload: { selector: res.highlightSelector, label: question },
+            });
+          }
+
+          sendResponse({ success: true, answer: res.answer, highlightSelector: res.highlightSelector });
+        } catch (err) {
+          console.error('[Sahayak Background Worker] Chat query error:', err);
+          sendResponse({ success: false, error: String(err) });
+        }
+      });
+
+      return true;
+    }
+
+    if (message.type === 'HIGHLIGHT_TARGET_ELEMENT') {
+      const { selector, label } = message.payload;
+      chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+        const activeTabId = tabs[0]?.id;
+        if (activeTabId) {
+          chrome.tabs.sendMessage(activeTabId, {
+            type: 'HIGHLIGHT_TARGET_ELEMENT',
+            payload: { selector, label },
+          });
+        }
+      });
+      sendResponse({ success: true });
+      return true;
     }
 
     return undefined;

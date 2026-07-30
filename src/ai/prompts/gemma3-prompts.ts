@@ -121,4 +121,22 @@ Format as JSON:
   "suggestedActions": []
 }
 `,
+
+  CHAT_QUERY_PROMPT: (pageUrl: string, summaryText: string, userQuestion: string) => `
+Webpage URL: ${pageUrl}
+Webpage Context Extract:
+${summaryText}
+
+User Question: "${userQuestion}"
+
+Instructions:
+You are Sahayak AI Assistant. Provide a helpful, clear, and direct answer to the user's question based ONLY on the provided webpage context extract.
+If the question is asking where a button, input field, form, or document section is located (e.g. "Where do I upload documents?", "Where is the submit button?", "Where do I enter Aadhaar?"), identify a matching CSS selector (e.g. "#btn-upload-docs", "input[type='file']", "#aadhaar-input", ".submit-btn") in your response.
+
+Return output strictly as a JSON object:
+{
+  "answer": "Clear text response explaining the answer to the user.",
+  "highlightSelector": "CSS selector to highlight, or null if no specific element needs highlighting"
+}
+`,
 };

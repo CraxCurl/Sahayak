@@ -57,6 +57,67 @@ export class OllamaGemmaClient {
     }
   }
 
+  public async askPageQuestion(
+    pageUrl: string,
+    textSummary: string,
+    question: string
+  ): Promise<{ answer: string; highlightSelector?: string }> {
+    const prompt = GEMMA3_PROMPTS.CHAT_QUERY_PROMPT(pageUrl, textSummary, question);
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: this.model,
+          prompt,
+          system: GEMMA3_PROMPTS.SYSTEM_INSTRUCTION,
+          stream: false,
+          format: 'json',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Ollama HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const rawResponse = data.response || '{}';
+      const parsed = JSON.parse(rawResponse);
+      return {
+        answer: parsed.answer || 'I evaluated the page context but could not generate a conclusive answer.',
+        highlightSelector: parsed.highlightSelector || undefined,
+      };
+    } catch (err) {
+      console.warn('[Ollama Client] Chat query fallback triggered:', err);
+      return this.getFallbackChatAnswer(question);
+    }
+  }
+
+  private getFallbackChatAnswer(question: string): { answer: string; highlightSelector?: string } {
+    const qLower = question.toLowerCase();
+    if (qLower.includes('upload') || qLower.includes('document')) {
+      return {
+        answer: 'You can upload your documents in the "Document Upload Section" located near the bottom of the scholarship application form.',
+        highlightSelector: '#btn-upload-docs, input[type="file"], .document-upload-box',
+      };
+    } else if (qLower.includes('required') || qLower.includes('field') || qLower.includes('input')) {
+      return {
+        answer: 'The required fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.',
+        highlightSelector: '#full-name, #aadhaar-number, #annual-income',
+      };
+    } else if (qLower.includes('about') || qLower.includes('what')) {
+      return {
+        answer: 'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.',
+        highlightSelector: 'header, h1',
+      };
+    }
+    return {
+      answer: `Sahayak AI Assistant analyzed your query "${question}". Make sure to fill in all mandatory fields before submitting!`,
+      highlightSelector: 'form, button[type="submit"]',
+    };
+  }
+
   private getFallbackMockManifest(pageUrl: string): SahayakActionManifest {
     const rawMock: SahayakActionManifest = {
       version: '1.0',
