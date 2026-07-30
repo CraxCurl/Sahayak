@@ -76,6 +76,13 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   executor,
   analyzer,
   chatOverlay,
+  health: async () => {
+    const { OllamaGemmaClient } = await import('@ai/api/ollama-client');
+    const client = new OllamaGemmaClient();
+    const result = await client.checkOllamaHealth();
+    console.log('[Sahayak Health Check Result]:', result);
+    return result;
+  },
   highlight: (selector: string, color = '#38bdf8') => executor.highlightAndScrollTo(selector, color),
   simplifyText: (selector: string, simplifiedContent: string) =>
     executor.executeSingleAction({
@@ -159,6 +166,53 @@ console.log(
   '[Sahayak DevTools API] Loaded on window.Sahayak. Run window.Sahayak.help() in console for list of commands!'
 );
 
+/**
+ * SPA MutationObserver with Debounce (Phase 1, Requirement 1.6).
+ * Watches document.body childList & subtree for structural churn on SPA site navigation (e.g. Next.js, React, Vue).
+ * Debounces re-analysis until 800ms of quiet after significant node churn, avoiding infinite re-trigger loops.
+ */
+let spaDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+let lastAnalyzedNodeCount = 0;
+
+const initSpaObserver = () => {
+  if (!document.body) return;
+
+  const observer = new MutationObserver(mutations => {
+    let significantNodesChanged = 0;
+    for (const m of mutations) {
+      if (m.type === 'childList') {
+        // Ignore Sahayak's own injected overlay elements
+        const isSahayakManaged = Array.from(m.addedNodes).some(
+          node => node instanceof HTMLElement && (node.id.includes('sahayak') || node.hasAttribute('data-sahayak-managed'))
+        );
+        if (!isSahayakManaged) {
+          significantNodesChanged += m.addedNodes.length + m.removedNodes.length;
+        }
+      }
+    }
+
+    // Ignore minor attribute changes or tiny single-node tweaks to prevent infinite loops
+    if (significantNodesChanged < 5) return;
+
+    if (spaDebounceTimer) clearTimeout(spaDebounceTimer);
+    spaDebounceTimer = setTimeout(() => {
+      chrome.storage.local.get(['sahayak_active'], items => {
+        if (items.sahayak_active !== false) {
+          const currentCount = document.body.getElementsByTagName('*').length;
+          // Guard against re-analyzing if node count churn is negligible
+          if (Math.abs(currentCount - lastAnalyzedNodeCount) > 10) {
+            console.log('[Sahayak Content Script] SPA DOM churn settled — re-triggering auto-analysis');
+            lastAnalyzedNodeCount = currentCount;
+            triggerAutoAnalysis();
+          }
+        }
+      });
+    }, 800);
+  });
+
+  observer.observe(document.body, { childList: true, subtree: true });
+};
+
 // Auto analyze page on initial load if extension is active
 setTimeout(() => {
   chrome.storage.local.get(['sahayak_active'], items => {
@@ -166,6 +220,8 @@ setTimeout(() => {
     if (isActive) {
       chatOverlay.mount();
       triggerAutoAnalysis();
+      lastAnalyzedNodeCount = document.body ? document.body.getElementsByTagName('*').length : 0;
+      initSpaObserver();
     } else {
       console.log('[Sahayak Content Script] Extension is currently paused');
     }

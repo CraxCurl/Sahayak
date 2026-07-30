@@ -117,12 +117,24 @@ ollama pull gemma3:4b
 ollama list
 ```
 
-### Step 3: Verify Ollama is Running
-```bash
-# Start Ollama (if not already running)
-ollama serve
+### Step 3: Verify Ollama & Enable CORS for Chrome Extension
 
-# Test it works (in another terminal)
+In Chrome Manifest V3, requests from extension background scripts to local host require explicit CORS headers (`OLLAMA_ORIGINS`).
+
+#### macOS / Linux:
+```bash
+OLLAMA_ORIGINS="chrome-extension://*" ollama serve
+```
+
+#### Windows (PowerShell):
+```powershell
+$env:OLLAMA_ORIGINS="chrome-extension://*"; ollama serve
+```
+
+> **Note**: Using the actual extension ID instead of the wildcard `chrome-extension://<id>` is more restrictive and preferable once the ID is stable (post-publish or pinned dev ID).
+
+#### Test Connection:
+```bash
 curl http://localhost:11434/api/tags
 ```
 You should see a JSON response listing `gemma3:4b`.

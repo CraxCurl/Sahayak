@@ -139,3 +139,49 @@ chrome.runtime.onMessage.addListener(
     return undefined;
   }
 );
+
+/**
+ * Long-lived Port Listener for Chat Streams (Phase 1, Requirement 1.3).
+ * Prevents MV3 service worker timeout disconnections during multi-second LLM generations.
+ */
+chrome.runtime.onConnect.addListener(port => {
+  if (port.name === 'sahayak-chat-port') {
+    port.onMessage.addListener(async (msg: any) => {
+      if (msg.type === 'CHAT_QUERY_REQUEST') {
+        const { question, pageUrl, textSummary } = msg.payload;
+
+        chrome.storage.local.get([SAHAYAK_CONSTANTS.STORAGE_KEYS.OLLAMA_URL], async items => {
+          const configuredUrl =
+            (items[SAHAYAK_CONSTANTS.STORAGE_KEYS.OLLAMA_URL] as string) ||
+            import.meta.env.VITE_OLLAMA_URL ||
+            'http://localhost:11434';
+
+          const client = new OllamaGemmaClient(configuredUrl);
+
+          try {
+            const res = await client.askPageQuestion(pageUrl, textSummary, question);
+
+            if (res.highlightSelector) {
+              const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+              if (tabs[0]?.id) {
+                chrome.tabs.sendMessage(tabs[0].id, {
+                  type: 'HIGHLIGHT_TARGET_ELEMENT',
+                  payload: { selector: res.highlightSelector, label: question },
+                });
+              }
+            }
+
+            port.postMessage({
+              success: true,
+              answer: res.answer,
+              highlightSelector: res.highlightSelector,
+            });
+          } catch (err) {
+            console.error('[Sahayak Service Worker Port] Chat query error:', err);
+            port.postMessage({ success: false, error: String(err) });
+          }
+        });
+      }
+    });
+  }
+});

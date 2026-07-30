@@ -22,6 +22,7 @@ import {
 import { MessageRouter } from '../messaging/message-router';
 import { ChromeStorageService } from '../storage/chrome-storage';
 import { ExtractedPageData } from '@shared/types/messages';
+import { OllamaGemmaClient, OllamaHealthResult } from '@ai/api/ollama-client';
 import '../../../assets/styles/global.css';
 
 export const PopupApp: React.FC = () => {
@@ -38,6 +39,9 @@ export const PopupApp: React.FC = () => {
   const [showButtons, setShowButtons] = useState(false);
   const [showInputs, setShowInputs] = useState(false);
 
+  const [ollamaHealth, setOllamaHealth] = useState<OllamaHealthResult>({ state: 'unreachable' });
+  const [copiedCommand, setCopiedCommand] = useState(false);
+
   useEffect(() => {
     // 1. Check liveness of background worker
     MessageRouter.ping()
@@ -51,7 +55,13 @@ export const PopupApp: React.FC = () => {
       })
       .catch(() => setLiveness('error'));
 
-    // 2. Load enabled/disabled state from chrome storage
+    // 2. Check health of Ollama API server and model availability
+    const client = new OllamaGemmaClient();
+    client.checkOllamaHealth().then(res => {
+      setOllamaHealth(res);
+    });
+
+    // 3. Load enabled/disabled state from chrome storage
     ChromeStorageService.get<boolean>('sahayak_active', true).then(val => {
       setIsActive(val);
     });
@@ -198,6 +208,60 @@ export const PopupApp: React.FC = () => {
               <ToggleLeft className="w-9 h-9 text-slate-500" />
             )}
           </button>
+        </div>
+
+        {/* Ollama Health Status Badge (Phase 1, Requirement 1.1 & 1.4) */}
+        <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-slate-300">Local AI Engine:</span>
+            {ollamaHealth.state === 'ready' && (
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 rounded-md border border-emerald-500/30 flex items-center gap-1">
+                <CheckCircle className="w-3 h-3 text-emerald-400" />
+                Ollama Connected ({ollamaHealth.activeModel || 'gemma3:4b'})
+              </span>
+            )}
+            {ollamaHealth.state === 'reachable_no_model' && (
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/20 text-amber-300 rounded-md border border-amber-500/30 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-amber-400" />
+                Model gemma3:4b Not Found
+              </span>
+            )}
+            {ollamaHealth.state === 'unreachable' && (
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-rose-500/20 text-rose-300 rounded-md border border-rose-500/30 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 text-rose-400" />
+                Ollama Not Running
+              </span>
+            )}
+          </div>
+
+          {ollamaHealth.state === 'reachable_no_model' && (
+            <div className="flex flex-col gap-1.5 p-2 rounded-lg bg-amber-950/40 border border-amber-800/40 text-[11px]">
+              <p className="text-amber-200">Run command below to pull Gemma 3 model:</p>
+              <div className="flex items-center justify-between bg-slate-950 px-2 py-1 rounded font-mono text-[10px] text-amber-300 border border-slate-800">
+                <code>ollama pull gemma3:4b</code>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('ollama pull gemma3:4b');
+                    setCopiedCommand(true);
+                    setTimeout(() => setCopiedCommand(false), 2000);
+                  }}
+                  className="px-1.5 py-0.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[9px] rounded font-sans transition-colors"
+                >
+                  {copiedCommand ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {ollamaHealth.state === 'unreachable' && (
+            <div className="flex flex-col gap-1.5 p-2 rounded-lg bg-rose-950/40 border border-rose-800/40 text-[11px]">
+              <p className="text-rose-200">Start Ollama with Chrome extension CORS enabled:</p>
+              <div className="bg-slate-950 p-2 rounded font-mono text-[9.5px] text-rose-300 border border-slate-800 space-y-1">
+                <div><strong>Windows:</strong> <code>$env:OLLAMA_ORIGINS="chrome-extension://*"; ollama serve</code></div>
+                <div><strong>Mac/Linux:</strong> <code>OLLAMA_ORIGINS="chrome-extension://*" ollama serve</code></div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Primary Extract CTA */}

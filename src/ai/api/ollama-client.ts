@@ -3,10 +3,19 @@ import { parseAndValidateGemmaOutput } from '../parser/json-parser';
 import { AIDecisionEngine } from '../decision/decision-engine';
 import { SahayakActionManifest } from '@shared/types/ai-actions';
 
+export type OllamaHealthState = 'unreachable' | 'reachable_no_model' | 'ready';
+
+export interface OllamaHealthResult {
+  state: OllamaHealthState;
+  activeModel?: string;
+  hostUrl?: string;
+}
+
 export class OllamaGemmaClient {
   private baseUrl: string;
   private model: string;
   private decisionEngine: AIDecisionEngine;
+  private debugMode: boolean = false;
 
   constructor(baseUrl = 'http://localhost:11434', model = 'gemma3:4b') {
     this.baseUrl = baseUrl;
@@ -14,39 +23,105 @@ export class OllamaGemmaClient {
     this.decisionEngine = new AIDecisionEngine();
   }
 
-  private async resolveBaseUrlAndModel(): Promise<{ url: string; activeModel: string }> {
-    const candidateUrls = [this.baseUrl, 'http://127.0.0.1:11434', 'http://localhost:11434'];
+  public setDebugMode(enable: boolean): void {
+    this.debugMode = enable;
+  }
+
+  /**
+   * Health check called on startup and exposed via window.Sahayak.health().
+   * Tries http://localhost:11434/api/tags, then http://127.0.0.1:11434/api/tags.
+   * Returns: 'unreachable' | 'reachable_no_model' | 'ready'.
+   * Satisfies Phase 1, Requirement 1.1.
+   */
+  public async checkOllamaHealth(): Promise<OllamaHealthResult> {
+    const candidateUrls = [this.baseUrl, 'http://localhost:11434', 'http://127.0.0.1:11434'];
     const uniqueUrls = Array.from(new Set(candidateUrls));
 
     for (const url of uniqueUrls) {
       try {
-        const tagsRes = await fetch(`${url}/api/tags`, { method: 'GET' });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const tagsRes = await fetch(`${url}/api/tags`, { method: 'GET', signal: controller.signal });
+        clearTimeout(timeoutId);
+
         if (tagsRes.ok) {
           const data = await tagsRes.json();
           const models: Array<{ name: string }> = data.models || [];
-          if (models.length > 0) {
-            // Check if exact model exists
-            const exactMatch = models.find(
-              m => m.name === this.model || m.name.startsWith(this.model)
-            );
-            if (exactMatch) {
-              return { url, activeModel: exactMatch.name };
-            }
-            // Check if any gemma model exists
-            const gemmaMatch = models.find(m => m.name.toLowerCase().includes('gemma'));
-            if (gemmaMatch) {
-              return { url, activeModel: gemmaMatch.name };
-            }
-            // Fallback to first available model in Ollama
-            return { url, activeModel: models[0].name };
+          if (models.length === 0) {
+            return { state: 'reachable_no_model', hostUrl: url };
           }
-          return { url, activeModel: this.model };
+          const hasGemmaModel = models.some(
+            m => m.name.toLowerCase().includes('gemma3') || m.name.toLowerCase().includes('gemma')
+          );
+          const activeModel =
+            models.find(m => m.name === this.model || m.name.startsWith(this.model))?.name ||
+            models.find(m => m.name.toLowerCase().includes('gemma'))?.name ||
+            models[0].name;
+
+          return {
+            state: hasGemmaModel ? 'ready' : 'reachable_no_model',
+            activeModel,
+            hostUrl: url,
+          };
         }
       } catch {
         // Try next candidate URL
       }
     }
+    return { state: 'unreachable' };
+  }
+
+  private async resolveBaseUrlAndModel(): Promise<{ url: string; activeModel: string }> {
+    const health = await this.checkOllamaHealth();
+    if (health.state === 'ready' && health.hostUrl && health.activeModel) {
+      return { url: health.hostUrl, activeModel: health.activeModel };
+    }
     return { url: this.baseUrl, activeModel: this.model };
+  }
+
+  /**
+   * Internal helper for posting to Ollama with 30s request timeout and retry-once-on-timeout policy.
+   * Satisfies Phase 1, Requirement 1.3.
+   */
+  private async postOllamaWithTimeout(
+    url: string,
+    bodyObj: Record<string, unknown>,
+    attempt = 1
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+    if (this.debugMode) {
+      console.log(`[Sahayak Ollama Debug Request Attempt ${attempt}]:`, {
+        url: `${url}/api/generate`,
+        body: bodyObj,
+      });
+    }
+
+    try {
+      const response = await fetch(`${url}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyObj),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (this.debugMode) {
+        console.log(`[Sahayak Ollama Debug Response Attempt ${attempt}]:`, {
+          status: response.status,
+          statusText: response.statusText,
+        });
+      }
+      return response;
+    } catch (err: any) {
+      clearTimeout(timeoutId);
+      if (err.name === 'AbortError' && attempt === 1) {
+        console.warn('[Sahayak Ollama Client] Request timed out (30s). Retrying once...');
+        return this.postOllamaWithTimeout(url, bodyObj, 2);
+      }
+      throw err;
+    }
   }
 
   public async generatePageAdaptation(
@@ -54,6 +129,15 @@ export class OllamaGemmaClient {
     textSummary: string,
     userPreferences: Record<string, unknown>
   ): Promise<SahayakActionManifest> {
+    const health = await this.checkOllamaHealth();
+
+    if (health.state !== 'ready') {
+      console.warn(
+        `[Ollama Client] Health check failed (${health.state}). Returning labeled fallback manifest.`
+      );
+      return this.getFallbackMockManifest(pageUrl, health.state);
+    }
+
     const { url, activeModel } = await this.resolveBaseUrlAndModel();
     const prompt = GEMMA3_PROMPTS.PAGE_ANALYSIS_PROMPT(
       pageUrl,
@@ -62,16 +146,12 @@ export class OllamaGemmaClient {
     );
 
     try {
-      const response = await fetch(`${url}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: activeModel,
-          prompt,
-          system: GEMMA3_PROMPTS.SYSTEM_INSTRUCTION,
-          stream: false,
-          format: 'json',
-        }),
+      const response = await this.postOllamaWithTimeout(url, {
+        model: activeModel,
+        prompt,
+        system: GEMMA3_PROMPTS.SYSTEM_INSTRUCTION,
+        stream: false,
+        format: 'json',
       });
 
       if (!response.ok) {
@@ -82,14 +162,13 @@ export class OllamaGemmaClient {
       const rawResponse = data.response || '';
       const rawManifest = parseAndValidateGemmaOutput(rawResponse);
 
-      // Process raw manifest through AI Decision Engine (filtering, conflict resolution, ranking)
       return this.decisionEngine.processManifest(rawManifest);
     } catch (err) {
       console.warn(
         '[Ollama Client] Could not connect to local Ollama server, applying page-adapted fallback UI:',
         err
       );
-      return this.getFallbackMockManifest(pageUrl);
+      return this.getFallbackMockManifest(pageUrl, 'unreachable');
     }
   }
 
@@ -216,11 +295,16 @@ export class OllamaGemmaClient {
     return { answer, highlightSelector };
   }
 
-  private getFallbackMockManifest(pageUrl: string): SahayakActionManifest {
+  private getFallbackMockManifest(pageUrl: string, healthState: OllamaHealthState = 'unreachable'): SahayakActionManifest {
+    const statusText =
+      healthState === 'reachable_no_model'
+        ? 'Ollama server up, model gemma3:4b not found. Run: ollama pull gemma3:4b'
+        : 'Ollama server unreachable at http://localhost:11434';
+
     const rawMock: SahayakActionManifest = {
       version: '1.0',
       pageUrl,
-      summary: 'Minimal basic layout mode applied (distractions hidden, primary buttons highlighted)',
+      summary: `Demo data — AI not connected (${statusText})`,
       actions: [
         {
           id: 'action-fallback-hide-distractions',
