@@ -55,6 +55,45 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   return true; // Keep message channel open for sendResponse
 });
 
+// Expose Sahayak API onto global window for DevTools Console execution & debugging
+(window as any).Sahayak = {
+  executor,
+  analyzer,
+  chatOverlay,
+  highlight: (selector: string, color = '#38bdf8') => executor.highlightAndScrollTo(selector, color),
+  simplifyText: (selector: string, simplifiedContent: string) =>
+    executor.executeSingleAction({
+      id: `console-act-${Date.now()}`,
+      type: 'SIMPLIFY_TEXT',
+      selector,
+      confidence: 1.0,
+      simplifiedContent,
+      originalTextSnippet: '',
+      reasoning: 'Console manual action',
+    }),
+  hideElement: (selector: string) =>
+    executor.executeSingleAction({
+      id: `console-act-${Date.now()}`,
+      type: 'HIDE_ELEMENT',
+      selector,
+      confidence: 1.0,
+      reasoning: 'Console manual action',
+    }),
+  injectCSS: (cssRules: string, scopeId = 'console-injected') =>
+    executor.getCSSInjector().injectCSS(scopeId, cssRules),
+  setHighContrast: (enable: boolean) =>
+    executor.getAccessibilityEngine().setHighContrast(enable),
+  setFontScale: (scale: number) =>
+    executor.getAccessibilityEngine().setFontScale(scale),
+  revertAll: () => executor.revertAll(),
+  analyzePage: () => analyzer.extractPageData(),
+  executeManifest: (manifest: any) => executor.executeManifest(manifest),
+};
+
+console.log(
+  '[Sahayak DevTools API] Available on window.Sahayak. Use window.Sahayak.highlight(), window.Sahayak.injectCSS(), window.Sahayak.revertAll() in console!'
+);
+
 // Auto analyze page on initial load if extension is active
 setTimeout(() => {
   chrome.storage.local.get(['sahayak_active'], items => {
