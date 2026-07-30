@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Sparkles, X, Target, HelpCircle, Bot, User, Minimize2 } from 'lucide-react';
+import { Send, Sparkles, X, Target, HelpCircle, Minimize2, Copy, Check, RefreshCw } from 'lucide-react';
 import { PageAnalyzer } from '@dom/analyzer/page-analyzer';
 import { ChatMessage } from '@shared/types/messages';
 import { MessageRouter } from '@extension/messaging/message-router';
@@ -10,9 +10,9 @@ interface ChatAssistantProps {
 }
 
 const DEFAULT_QUICK_QUESTIONS = [
-  'Where do I upload my documents?',
-  'What is this page about?',
-  'Which fields are required?',
+  'Summarize this page',
+  'Where do I upload files?',
+  'What are the key required fields?',
   'Explain eligibility policy',
 ];
 
@@ -21,11 +21,12 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState<'reading' | 'analyzing' | 'generating'>('reading');
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome-1',
       sender: 'assistant',
-      text: 'Hello! I am Sahayak AI Assistant. Ask me anything about this webpage or click a quick question below!',
+      text: 'Hello! I am **Sahayak AI** powered by local Gemma 3. Ask me anything about this webpage or select a prompt below to get started.',
       timestamp: Date.now(),
     },
   ]);
@@ -40,6 +41,12 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
   useEffect(() => {
     scrollToBottom();
   }, [messages, isLoading]);
+
+  const handleCopyText = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handleSendMessage = async (queryText: string) => {
     const text = queryText.trim();
@@ -61,9 +68,9 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     let pageUrl: string = '';
 
     try {
-      setTimeout(() => setLoadingStage('analyzing'), 600);
+      setTimeout(() => setLoadingStage('analyzing'), 500);
 
-      // If we are in the dashboard/options page, we need to extract from the active web tab
+      // If we are in the dashboard/options page, extract from the active web tab
       if (window.location.protocol.startsWith('chrome-extension')) {
         const response = (await MessageRouter.extractActiveTab()) as
           { success: boolean; payload?: any; error?: string } | undefined;
@@ -74,7 +81,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
           throw new Error(response?.error || 'Could not reach the active webpage.');
         }
       } else {
-        // We are already in the content script
+        // Content script context
         summaryData = analyzerRef.current.analyzeCurrentPage();
         pageUrl = window.location.href || summaryData.pageUrl;
       }
@@ -118,7 +125,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
       const errorMsg: ChatMessage = {
         id: `err-${Date.now()}`,
         sender: 'assistant',
-        text: `Error: ${err.message}. Make sure you have a website open in another tab and it's not a restricted page.`,
+        text: `Error: ${err.message}. Make sure you have an active website open in another tab.`,
         timestamp: Date.now(),
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -132,16 +139,16 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     const headings = currentSummary?.headings || [];
     const textExtract = currentSummary?.textSummary || currentSummary?.text || '';
 
-    let text = `Parsed context for "${pageTitle}". Review the main sections and required fields.`;
+    let text = `Context summary for **${pageTitle}**:\n\nKey details parsed successfully from current page structure.`;
     let highlightSelector: string | undefined = undefined;
 
     if (lower.includes('upload') || lower.includes('document') || lower.includes('file')) {
       const fileInputs = document.querySelectorAll('input[type="file"], #btn-upload-docs, .document-upload-box');
       if (fileInputs.length > 0) {
-        text = `Found document upload options on "${pageTitle}". Click "Highlight Element on Page" below to locate them.`;
+        text = `Found document upload options on **${pageTitle}**. Click the highlight button below to navigate directly to them.`;
         highlightSelector = '#btn-upload-docs, input[type="file"], .document-upload-box';
       } else {
-        text = `Checked "${pageTitle}" for document attachments. Upload controls appear in form sections.`;
+        text = `Checked **${pageTitle}** for file attachments. Upload controls usually reside inside main application forms.`;
         highlightSelector = 'form, input';
       }
     } else if (lower.includes('required') || lower.includes('field') || lower.includes('input') || lower.includes('form')) {
@@ -151,18 +158,18 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
           .map(el => el.getAttribute('placeholder') || el.id || el.getAttribute('name'))
           .filter(Boolean)
           .slice(0, 4);
-        text = `Required fields detected on this page: ${fieldNames.join(', ') || 'Mandatory inputs'}.`;
+        text = `Required fields detected on this page:\n• ${fieldNames.join('\n• ') || 'Mandatory form inputs'}`;
         highlightSelector = 'input[required], select[required], textarea[required], input';
       } else {
-        text = `Scanned form fields on "${pageTitle}". Ensure all highlighted inputs are filled out.`;
+        text = `Scanned form fields on **${pageTitle}**. Ensure all mandatory inputs are properly completed.`;
         highlightSelector = 'input, select, textarea';
       }
     } else if (lower.includes('about') || lower.includes('what') || lower.includes('summary') || lower.includes('explain')) {
-      const topHeadings = Array.isArray(headings) ? headings.slice(0, 3).join(' | ') : '';
-      text = `This page is "${pageTitle}". ${topHeadings ? 'Key sections: ' + topHeadings + '.' : ''} Overview: ${textExtract.slice(0, 250)}...`;
+      const topHeadings = Array.isArray(headings) ? headings.slice(0, 3).join(' • ') : '';
+      text = `### Overview: ${pageTitle}\n\n${topHeadings ? '**Key Sections:** ' + topHeadings + '\n\n' : ''}${textExtract.slice(0, 300)}...`;
       highlightSelector = 'h1, h2, header, main';
     } else {
-      text = `Analyzed "${pageTitle}". ${textExtract.slice(0, 200)}...`;
+      text = `Analyzed **${pageTitle}**:\n\n${textExtract.slice(0, 250)}...`;
       highlightSelector = 'h1, form, button';
     }
 
@@ -179,7 +186,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
   const handleTriggerHighlight = (selector?: string) => {
     if (!selector) return;
 
-    // 1. Immediately highlight in active DOM context
     const els = document.querySelectorAll(selector);
     if (els.length > 0) {
       const first = els[0] as HTMLElement;
@@ -187,9 +193,9 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
       els.forEach(el => {
         const htmlEl = el as HTMLElement;
         htmlEl.style.transition = 'all 0.3s ease-in-out';
-        htmlEl.style.outline = '4px solid #38bdf8';
+        htmlEl.style.outline = '4px solid #10a37f';
         htmlEl.style.outlineOffset = '3px';
-        htmlEl.style.boxShadow = '0 0 25px rgba(56, 189, 248, 0.8)';
+        htmlEl.style.boxShadow = '0 0 25px rgba(16, 163, 127, 0.8)';
         setTimeout(() => {
           htmlEl.style.outline = '';
           htmlEl.style.boxShadow = '';
@@ -197,7 +203,6 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
       });
     }
 
-    // 2. Broadcast IPC message to active extension tab
     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
       chrome.runtime.sendMessage({
         type: 'HIGHLIGHT_TARGET_ELEMENT',
@@ -210,14 +215,13 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-[99999] flex items-center gap-2.5 px-4 py-3 bg-gradient-to-r from-sky-500 via-indigo-600 to-sky-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-full shadow-2xl shadow-sky-500/40 border border-sky-300/30 transition-all duration-300 transform hover:scale-105 active:scale-95 group font-sans"
-        aria-label="Open Sahayak AI Assistant"
+        className="fixed bottom-6 right-6 z-[99999] flex items-center gap-2.5 px-4 py-3 bg-[#10a37f] hover:bg-[#1a7f64] text-white rounded-full shadow-2xl transition-all duration-300 transform hover:scale-105 active:scale-95 font-sans"
+        aria-label="Open ChatGPT Assistant"
       >
-        <div className="relative">
-          <Sparkles className="w-5 h-5 animate-pulse text-sky-200" />
-          <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900"></span>
+        <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+          <Sparkles className="w-3.5 h-3.5 text-white" />
         </div>
-        <span className="text-xs font-bold tracking-wide">Sahayak AI Assistant</span>
+        <span className="text-xs font-semibold tracking-wide">Sahayak AI</span>
       </button>
     );
   }
@@ -226,24 +230,23 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     <div
       className={`${
         embedded
-          ? 'w-full h-full flex flex-col bg-slate-950 text-slate-100 font-sans'
-          : 'fixed bottom-6 right-6 w-96 max-w-[calc(100vw-2rem)] h-[540px] z-[99999] flex flex-col bg-slate-950/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl shadow-sky-950/50 text-slate-100 font-sans overflow-hidden transition-all duration-300'
+          ? 'w-full h-full flex flex-col bg-[#202123] text-gray-100 font-sans'
+          : 'fixed bottom-6 right-6 w-[420px] max-w-[calc(100vw-2rem)] h-[600px] z-[99999] flex flex-col bg-[#202123] border border-gray-700/60 rounded-2xl shadow-2xl text-gray-100 font-sans overflow-hidden transition-all duration-300'
       }`}
     >
-      {/* Top Header */}
-      <header className="flex items-center justify-between px-4 py-3.5 bg-slate-900/90 border-b border-slate-800/80">
+      {/* ChatGPT-style Minimal Dark Header */}
+      <header className="flex items-center justify-between px-4 py-3 bg-[#343541] border-b border-gray-700/50">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20">
-            <Bot className="w-4 h-4" />
+          <div className="w-7 h-7 rounded-md bg-[#10a37f] flex items-center justify-center text-white shadow-sm">
+            <Sparkles className="w-4 h-4" />
           </div>
           <div>
-            <h2 className="text-xs font-bold text-slate-100 flex items-center gap-1.5">
-              Sahayak AI Chat
-              <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 rounded-md border border-emerald-500/30">
+            <h2 className="text-xs font-semibold text-gray-100 flex items-center gap-2">
+              Sahayak GPT
+              <span className="px-1.5 py-0.2 text-[9px] font-mono font-medium bg-[#10a37f]/20 text-[#10a37f] rounded border border-[#10a37f]/30">
                 Gemma 3
               </span>
             </h2>
-            <p className="text-[10px] text-slate-400">Context-Aware Page Assistant</p>
           </div>
         </div>
 
@@ -251,8 +254,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
           {!embedded && (
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-lg transition-colors"
-              title="Minimize chat"
+              className="p-1.5 text-gray-400 hover:text-gray-200 hover:bg-[#40414f] rounded-md transition-colors"
+              title="Minimize"
             >
               <Minimize2 className="w-4 h-4" />
             </button>
@@ -260,8 +263,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
           {onClose && (
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800/60 rounded-lg transition-colors"
-              title="Close chat"
+              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-[#40414f] rounded-md transition-colors"
+              title="Close"
             >
               <X className="w-4 h-4" />
             </button>
@@ -270,48 +273,60 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
       </header>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 p-3.5 overflow-y-auto flex flex-col gap-3.5 scrollbar-thin scrollbar-thumb-slate-800">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-700/40 scrollbar-thin scrollbar-thumb-gray-600">
         {messages.map(msg => (
           <div
             key={msg.id}
-            className={`flex flex-col gap-1 max-w-[85%] ${
-              msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
+            className={`p-4 flex gap-3 ${
+              msg.sender === 'user' ? 'bg-[#343541]' : 'bg-[#444654]'
             }`}
           >
-            <div className="flex items-center gap-1.5 px-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
+            {/* Avatar */}
+            <div className="shrink-0">
               {msg.sender === 'user' ? (
-                <>
-                  <span>You</span>
-                  <div className="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center border border-sky-500/30">
-                    <User className="w-3 h-3 text-sky-400" />
-                  </div>
-                </>
+                <div className="w-7 h-7 rounded-sm bg-purple-600 flex items-center justify-center text-white text-xs font-bold">
+                  U
+                </div>
               ) : (
-                <>
-                  <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                    <Bot className="w-3 h-3 text-indigo-400" />
-                  </div>
-                  <span>Sahayak AI</span>
-                </>
+                <div className="w-7 h-7 rounded-sm bg-[#10a37f] flex items-center justify-center text-white">
+                  <Sparkles className="w-4 h-4" />
+                </div>
               )}
             </div>
 
-            <div
-              className={`p-3.5 text-[13px] leading-relaxed rounded-2xl shadow-xl transition-all hover:shadow-sky-900/10 ${
-                msg.sender === 'user'
-                  ? 'bg-sky-600 text-white rounded-tr-none border border-sky-400/20'
-                  : 'bg-slate-900/95 border border-slate-800/90 text-slate-200 rounded-tl-none'
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{msg.text}</p>
+            {/* Content & Actions */}
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-semibold text-gray-300">
+                  {msg.sender === 'user' ? 'You' : 'Sahayak AI'}
+                </span>
+
+                {msg.sender === 'assistant' && (
+                  <button
+                    onClick={() => handleCopyText(msg.id, msg.text)}
+                    className="text-gray-400 hover:text-gray-200 p-1 rounded transition-colors"
+                    title="Copy text"
+                  >
+                    {copiedId === msg.id ? (
+                      <Check className="w-3.5 h-3.5 text-[#10a37f]" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                )}
+              </div>
+
+              <div className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap font-sans">
+                {msg.text}
+              </div>
 
               {msg.highlightSelector && (
                 <button
                   onClick={() => handleTriggerHighlight(msg.highlightSelector)}
-                  className="mt-2.5 flex items-center gap-1.5 px-2.5 py-1.5 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-[10px] font-medium rounded-lg transition-colors group"
+                  className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-[#10a37f]/10 hover:bg-[#10a37f]/20 border border-[#10a37f]/40 text-[#10a37f] text-xs font-medium rounded-md transition-colors"
                 >
-                  <Target className="w-3 h-3 text-sky-400 group-hover:scale-110 transition-transform" />
-                  Highlight Element on Page
+                  <Target className="w-3.5 h-3.5" />
+                  Locate & Highlight on Webpage
                 </button>
               )}
             </div>
@@ -319,57 +334,74 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
         ))}
 
         {isLoading && (
-          <div className="self-start flex items-center gap-2 px-3 py-2 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs text-slate-300 animate-pulse">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400 animate-spin" />
-            <span>
-              {loadingStage === 'reading' && 'Reading page content...'}
-              {loadingStage === 'analyzing' && 'Analyzing structure & controls...'}
-              {loadingStage === 'generating' && 'Generating Gemma 3 response...'}
-            </span>
+          <div className="p-4 bg-[#444654] flex gap-3 items-center">
+            <div className="w-7 h-7 rounded-sm bg-[#10a37f] flex items-center justify-center text-white shrink-0">
+              <Sparkles className="w-4 h-4 animate-spin" />
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-300 animate-pulse">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#10a37f]" />
+              <span>
+                {loadingStage === 'reading' && 'Reading webpage context...'}
+                {loadingStage === 'analyzing' && 'Analyzing DOM structure...'}
+                {loadingStage === 'generating' && 'Thinking...'}
+              </span>
+            </div>
           </div>
         )}
 
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggested Quick Questions */}
-      <div className="px-3 py-2 bg-slate-900/50 border-t border-slate-800/60 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        <HelpCircle className="w-3.5 h-3.5 text-slate-400 shrink-0 ml-1" />
+      {/* Starter Question Chips */}
+      <div className="px-3 py-2 bg-[#202123] border-t border-gray-700/50 flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <HelpCircle className="w-3.5 h-3.5 text-gray-400 shrink-0 ml-1" />
         {DEFAULT_QUICK_QUESTIONS.map((q, idx) => (
           <button
             key={idx}
             onClick={() => handleSendMessage(q)}
             disabled={isLoading}
-            className="shrink-0 px-2.5 py-1 bg-slate-800/80 hover:bg-sky-900/40 hover:border-sky-500/40 border border-slate-700/50 text-[10px] text-slate-300 hover:text-sky-200 rounded-full transition-all"
+            className="shrink-0 px-3 py-1 bg-[#343541] hover:bg-[#40414f] border border-gray-600/50 text-xs text-gray-300 hover:text-white rounded-full transition-all"
           >
             {q}
           </button>
         ))}
       </div>
 
-      {/* Input Footer */}
-      <form
-        onSubmit={e => {
-          e.preventDefault();
-          handleSendMessage(inputQuery);
-        }}
-        className="p-3 bg-slate-900 border-t border-slate-800 flex items-center gap-2"
-      >
-        <input
-          type="text"
-          value={inputQuery}
-          onChange={e => setInputQuery(e.target.value)}
-          placeholder="Ask about this page..."
-          className="flex-1 bg-slate-950 border border-slate-800 focus:border-sky-500 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none transition-colors"
-        />
-        <button
-          type="submit"
-          disabled={!inputQuery.trim() || isLoading}
-          className="p-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 disabled:opacity-40 text-white rounded-xl shadow-md transition-all shrink-0"
+      {/* Input Bar - ChatGPT Style Floating Box */}
+      <div className="p-3 bg-[#202123] border-t border-gray-700/50">
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            handleSendMessage(inputQuery);
+          }}
+          className="relative flex items-center bg-[#40414f] rounded-xl border border-gray-600/60 focus-within:border-[#10a37f] transition-all shadow-inner"
         >
-          <Send className="w-3.5 h-3.5" />
-        </button>
-      </form>
+          <textarea
+            value={inputQuery}
+            onChange={e => setInputQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage(inputQuery);
+              }
+            }}
+            placeholder="Send a message..."
+            rows={1}
+            className="w-full bg-transparent px-4 py-3 text-sm text-gray-100 placeholder-gray-400 focus:outline-none resize-none no-scrollbar"
+          />
+          <button
+            type="submit"
+            disabled={!inputQuery.trim() || isLoading}
+            className="absolute right-2 p-2 bg-[#10a37f] hover:bg-[#1a7f64] disabled:opacity-30 disabled:hover:bg-[#10a37f] text-white rounded-lg transition-all shadow"
+          >
+            <Send className="w-3.5 h-3.5" />
+          </button>
+        </form>
+        <p className="text-[10px] text-center text-gray-500 mt-1.5">
+          Sahayak GPT runs locally via Gemma 3. Verification recommended for critical details.
+        </p>
+      </div>
     </div>
   );
 };
+
