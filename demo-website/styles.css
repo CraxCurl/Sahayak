@@ -1,0 +1,373 @@
+:root {
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --bg-dark: #0b132b;
+  --card-bg: #1c2541;
+  --border-color: #3a506b;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --accent: #38bdf8;
+  --accent-gold: #fbbf24;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #0f172a;
+  color: var(--text-main);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Header */
+.gov-header {
+  background: linear-gradient(135deg, #091e3a 0%, #2f80ed 100%);
+  border-b: 1px solid var(--border-color);
+  padding: 1.25rem 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gov-title-box {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.emblem-badge {
+  font-size: 2.2rem;
+}
+
+.portal-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.portal-sub {
+  font-size: 0.75rem;
+  color: #cbd5e1;
+}
+
+.session-badge {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Main Layout */
+.main-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1.75rem;
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+}
+
+@media (max-width: 900px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.content-area {
+  display: flex;
+  flex-col;
+  gap: 1.5rem;
+}
+
+/* Cards */
+.notice-card {
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.notice-card h3 {
+  font-size: 0.9rem;
+  color: var(--accent-gold);
+  margin-bottom: 0.4rem;
+}
+
+.notice-card p {
+  font-size: 0.8rem;
+  color: #e2e8f0;
+}
+
+.form-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 1.75rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.form-card-header {
+  border-bottom: 1px solid #334155;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.form-card-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.text-muted {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.section-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 1rem;
+  border-left: 3px solid var(--accent);
+  padding-left: 0.6rem;
+}
+
+.form-group-section {
+  margin-bottom: 1.75rem;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 600px) {
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.req {
+  color: #ef4444;
+}
+
+input[type='text'],
+input[type='date'],
+input[type='number'],
+select {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input:focus,
+select:focus {
+  border-color: var(--accent);
+}
+
+/* Document Dropzone */
+.document-upload-box {
+  border: 2px dashed #475569;
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 12px;
+  padding: 2rem;
+  text-align: center;
+  margin-top: 0.75rem;
+  transition: all 0.2s;
+}
+
+.document-upload-box:hover {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.05);
+}
+
+.upload-icon {
+  font-size: 2.2rem;
+  margin-bottom: 0.5rem;
+}
+
+.or-text {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0.5rem 0;
+}
+
+/* Buttons */
+.btn-primary {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 99, 235, 0.4);
+}
+
+.btn-secondary {
+  background: #334155;
+  color: #ffffff;
+  border: 1px solid #475569;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background: #475569;
+}
+
+.btn-light {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  padding: 0.75rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #334155;
+}
+
+/* Policy Section */
+.policy-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.policy-card h4 {
+  font-size: 0.85rem;
+  color: #cbd5e1;
+  margin-bottom: 0.4rem;
+}
+
+.policy-text {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.sidebar-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 14px;
+  padding: 1.25rem;
+}
+
+.sidebar-card h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+}
+
+.quick-links {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quick-links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.quick-links a:hover {
+  text-decoration: underline;
+}
+
+.faq-item {
+  border-bottom: 1px solid #334155;
+  padding: 0.5rem 0;
+
+}
+
+.faq-item summary {
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #cbd5e1;
+}
+
+.faq-item p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.4rem;
+}
+
+/* Footer */
+.gov-footer {
+  background: #091e3a;
+  border-top: 1px solid #1e293b;
+  padding: 1.5rem 0;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
