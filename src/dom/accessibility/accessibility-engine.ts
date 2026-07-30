@@ -61,15 +61,17 @@ export class AccessibilityEngine {
    */
   public setFontScale(scale: number): void {
     this.currentFontScale = scale;
-    if (scale === 1.0) {
+    if (scale <= 1.0) {
       this.cssInjector.removeCSS('font-scale-override');
       return;
     }
 
+    // Limit maximum scale to 1.15 (15% max increase) to keep layout clean and readable
+    const clampedScale = Math.min(scale, 1.15);
     const fontCSS = `
-      p, span, li, a, label, button, input, h1, h2, h3, h4, h5, h6 {
-        font-size: calc(1em * ${scale}) !important;
-        line-height: calc(1.5em * ${scale}) !important;
+      body {
+        font-size: calc(100% * ${clampedScale}) !important;
+        line-height: 1.6 !important;
       }
     `;
     this.cssInjector.injectCSS('font-scale-override', fontCSS);

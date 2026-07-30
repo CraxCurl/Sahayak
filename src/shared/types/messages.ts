@@ -27,7 +27,8 @@ export type MessageType =
   | 'PING_BACKGROUND'
   | 'CHAT_QUERY_REQUEST'
   | 'CHAT_QUERY_RESPONSE'
-  | 'HIGHLIGHT_TARGET_ELEMENT';
+  | 'HIGHLIGHT_TARGET_ELEMENT'
+  | 'SAHAYAK_TOGGLE_STATE';
 
 export interface ChatMessage {
   id: string;
@@ -47,6 +48,7 @@ export interface MessagePayloadMap {
   CHAT_QUERY_REQUEST: { question: string; pageUrl: string; textSummary: string };
   CHAT_QUERY_RESPONSE: { answer: string; highlightSelector?: string };
   HIGHLIGHT_TARGET_ELEMENT: { selector: string; label?: string };
+  SAHAYAK_TOGGLE_STATE: { active: boolean };
 }
 
 export type ExtensionMessage =
@@ -85,5 +87,10 @@ export type ExtensionMessage =
   | {
       type: 'HIGHLIGHT_TARGET_ELEMENT';
       payload: MessagePayloadMap['HIGHLIGHT_TARGET_ELEMENT'];
+      senderTabId?: number;
+    }
+  | {
+      type: 'SAHAYAK_TOGGLE_STATE';
+      payload: MessagePayloadMap['SAHAYAK_TOGGLE_STATE'];
       senderTabId?: number;
     };

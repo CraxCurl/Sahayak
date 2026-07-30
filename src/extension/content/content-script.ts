@@ -9,8 +9,22 @@ const analyzer = new PageAnalyzer();
 const executor = new SafeDOMExecutor();
 const chatOverlay = new ChatOverlayManager();
 
-// Mount floating AI Chat Assistant overlay
-chatOverlay.mount();
+// Function to trigger Ollama AI analysis automatically
+const triggerAutoAnalysis = () => {
+  try {
+    const summary = analyzer.analyzeCurrentPage();
+    const msg: ExtensionMessage = {
+      type: 'AI_RUN_ANALYSIS',
+      payload: {
+        textSummary: summary.textSummary,
+        userPreferences: { adaptLayout: true, highlightButtons: true },
+      },
+    };
+    chrome.runtime.sendMessage(msg);
+  } catch (err) {
+    console.warn('[Sahayak Content Script] Could not auto-trigger AI analysis:', err);
+  }
+};
 
 // Listen for messages from background service worker / popup
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
@@ -27,26 +41,29 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
     } catch (err) {
       sendResponse({ success: false, error: String(err) });
     }
+  } else if (message.type === 'SAHAYAK_TOGGLE_STATE') {
+    if (message.payload.active) {
+      console.log('[Sahayak Content Script] Extension ENABLED - Mount floating chat & trigger Ollama analysis');
+      chatOverlay.mount();
+      triggerAutoAnalysis();
+    } else {
+      console.log('[Sahayak Content Script] Extension DISABLED - Reverting all DOM changes & unmounting overlay');
+      executor.revertAll();
+      chatOverlay.unmount();
+    }
   }
   return true; // Keep message channel open for sendResponse
 });
 
-// Auto analyze page on idle load
+// Auto analyze page on initial load if extension is active
 setTimeout(() => {
   chrome.storage.local.get(['sahayak_active'], items => {
     const isActive = items.sahayak_active !== false; // Default to true if undefined
-    if (!isActive) {
-      console.log('[Sahayak Content Script] Auto-adaptation is paused');
-      return;
+    if (isActive) {
+      chatOverlay.mount();
+      triggerAutoAnalysis();
+    } else {
+      console.log('[Sahayak Content Script] Extension is currently paused');
     }
-    const summary = analyzer.analyzeCurrentPage();
-    const msg: ExtensionMessage = {
-      type: 'AI_RUN_ANALYSIS',
-      payload: {
-        textSummary: summary.textSummary,
-        userPreferences: { adaptLayout: true, highlightButtons: true },
-      },
-    };
-    chrome.runtime.sendMessage(msg);
   });
-}, 1000);
+}, 800);

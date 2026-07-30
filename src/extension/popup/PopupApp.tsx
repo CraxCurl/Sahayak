@@ -62,17 +62,16 @@ export const PopupApp: React.FC = () => {
     setIsActive(nextState);
     await ChromeStorageService.set<boolean>('sahayak_active', nextState);
 
-    // Notify active tab of setting changes if needed
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id) {
         chrome.tabs.sendMessage(tab.id, {
-          type: 'SETTINGS_UPDATE',
-          payload: { theme: 'dark', gemmaApiKey: '' }, // placeholder parameters to match message contract
+          type: 'SAHAYAK_TOGGLE_STATE',
+          payload: { active: nextState },
         });
       }
     } catch (e) {
-      console.warn('Could not propagate setting update to tab:', e);
+      console.warn('Could not propagate toggle update to tab:', e);
     }
   };
 
