@@ -1,0 +1,141 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Pixelify Sans', system-ui, -apple-system, sans-serif;
+    min-width: 340px;
+    height: 100vh;
+    overflow-x: hidden;
+    background-color: #090d16;
+  }
+}
+
+/* 8-Bit Retro Typography Utility Classes */
+.font-pixel {
+  font-family: 'Pixelify Sans', cursive, sans-serif;
+}
+
+.font-press-start {
+  font-family: 'Press Start 2P', monospace;
+}
+
+.font-vt323 {
+  font-family: 'VT323', monospace;
+}
+
+/* 8-Bit Pixel Cards */
+.bit-card {
+  background: #111827;
+  border: 2px solid #374151;
+  box-shadow: 3px 3px 0px #000000;
+  position: relative;
+}
+
+.bit-card-highlight {
+  background: #0f172a;
+  border: 2px solid #2563eb;
+  box-shadow: 3px 3px 0px #1e3a8a;
+}
+
+/* 8-Bit Retro Buttons */
+.bit-btn {
+  font-family: 'Pixelify Sans', sans-serif;
+  font-weight: 700;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px #000000;
+  transition: all 0.1s ease;
+  position: relative;
+}
+
+.bit-btn:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0px #000000;
+}
+
+.bit-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 0px 0px 0px #000000;
+}
+
+.bit-btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.bit-btn-primary:hover {
+  background: #1d4ed8;
+}
+
+.bit-btn-success {
+  background: #10b981;
+  color: #000000;
+}
+
+.bit-btn-danger {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+.bit-btn-purple {
+  background: #8b5cf6;
+  color: #ffffff;
+}
+
+/* 8-Bit Pixel Badges */
+.bit-badge {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  padding: 3px 6px;
+  border: 1px solid #000000;
+  box-shadow: 1px 1px 0px #000000;
+  text-transform: uppercase;
+}
+
+.bit-badge-cyan {
+  background: #06b6d4;
+  color: #000000;
+}
+
+.bit-badge-amber {
+  background: #f59e0b;
+  color: #000000;
+}
+
+.bit-badge-emerald {
+  background: #10b981;
+  color: #000000;
+}
+
+/* Retro CRT Scanlines Effect */
+.crt-scanlines {
+  position: relative;
+}
+.crt-scanlines::before {
+  content: " ";
+  display: block;
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-left: 1px solid #1e293b;
+}
+::-webkit-scrollbar-thumb {
+  background: #3b82f6;
+  border: 1px solid #000000;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #60a5fa;
+}
