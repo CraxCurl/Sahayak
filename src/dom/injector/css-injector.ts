@@ -38,13 +38,13 @@ export class CSSInjector {
    * Remove all CSS rules injected by Sahayak.
    */
   public clearAllInjections(): void {
-    this.injectedStyles.forEach((styleEl) => {
+    this.injectedStyles.forEach(styleEl => {
       styleEl.remove();
     });
     this.injectedStyles.clear();
 
     // Secondary cleanup for any stray style elements tagged with data-sahayak-managed
-    document.querySelectorAll('style[data-sahayak-managed]').forEach((el) => el.remove());
+    document.querySelectorAll('style[data-sahayak-managed]').forEach(el => el.remove());
   }
 
   /**

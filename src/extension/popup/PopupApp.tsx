@@ -41,8 +41,9 @@ export const PopupApp: React.FC = () => {
   useEffect(() => {
     // 1. Check liveness of background worker
     MessageRouter.ping()
-      .then((res: any) => {
-        if (res?.status === 'pong') {
+      .then((res: unknown) => {
+        const pingRes = res as { status?: string } | undefined;
+        if (pingRes?.status === 'pong') {
           setLiveness('connected');
         } else {
           setLiveness('error');
@@ -81,15 +82,17 @@ export const PopupApp: React.FC = () => {
     setAiResult(null);
 
     try {
-      const response = await MessageRouter.extractActiveTab();
+      const response = (await MessageRouter.extractActiveTab()) as
+        { success: boolean; payload?: ExtractedPageData; error?: string } | undefined;
       if (response && response.success && response.payload) {
         setExtractedData(response.payload);
       } else {
-        setErrorMessage(response?.error || 'Extraction returned no payload. Is the content script active?');
+        setErrorMessage(
+          response?.error || 'Extraction returned no payload. Is the content script active?'
+        );
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMessage('Failed to communicate with the page. Try reloading the active tab.');
     } finally {
       setIsExtracting(false);
     }
@@ -102,10 +105,12 @@ export const PopupApp: React.FC = () => {
     setAiResult(null);
 
     try {
-      const response = await MessageRouter.forwardToAI(extractedData, {
+      const response = (await MessageRouter.forwardToAI(extractedData, {
         adaptLayout: true,
         highlightButtons: true,
-      });
+      })) as
+        | { success: boolean; manifest?: { summary?: string; actions?: unknown[] }; error?: string }
+        | undefined;
 
       if (response && response.success && response.manifest) {
         setAiResult({
@@ -115,7 +120,7 @@ export const PopupApp: React.FC = () => {
       } else {
         setErrorMessage(response?.error || 'Ollama model returned an invalid response.');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setErrorMessage('Error executing AI analysis. Ensure Ollama is running at localhost:11434.');
     } finally {
@@ -264,7 +269,11 @@ export const PopupApp: React.FC = () => {
                       {extractedData.headings.length}
                     </span>
                   </div>
-                  {showHeadings ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showHeadings ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
                 </button>
                 {showHeadings && (
                   <div className="px-3.5 pb-3 pt-1 border-t border-slate-850/80 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
@@ -298,7 +307,11 @@ export const PopupApp: React.FC = () => {
                       {extractedData.buttons.length}
                     </span>
                   </div>
-                  {showButtons ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showButtons ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
                 </button>
                 {showButtons && (
                   <div className="px-3.5 pb-3 pt-1 border-t border-slate-850/80 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
@@ -332,7 +345,11 @@ export const PopupApp: React.FC = () => {
                       {extractedData.inputs.length}
                     </span>
                   </div>
-                  {showInputs ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showInputs ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
                 </button>
                 {showInputs && (
                   <div className="px-3.5 pb-3 pt-1 border-t border-slate-850/80 flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
@@ -362,8 +379,14 @@ export const PopupApp: React.FC = () => {
                   </div>
                   <div className="flex flex-col gap-2 max-h-24 overflow-y-auto mt-1 border-t border-slate-850/80 pt-1.5">
                     {extractedData.forms.map((f, i) => (
-                      <div key={i} className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                        <span className="truncate max-w-[150px]" title={f.id || f.name || `Form ${i + 1}`}>
+                      <div
+                        key={i}
+                        className="flex items-center justify-between text-[10px] text-slate-400 font-mono"
+                      >
+                        <span
+                          className="truncate max-w-[150px]"
+                          title={f.id || f.name || `Form ${i + 1}`}
+                        >
                           {f.id || f.name || `Form ${i + 1}`}
                         </span>
                         <div className="flex items-center gap-2 font-sans font-medium text-slate-300">
@@ -440,4 +463,3 @@ if (container) {
   const root = createRoot(container);
   root.render(<PopupApp />);
 }
-

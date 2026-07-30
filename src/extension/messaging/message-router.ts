@@ -1,7 +1,7 @@
 import { ExtensionMessage, ExtractedPageData } from '@shared/types/messages';
 
 export class MessageRouter {
-  public static sendMessage(message: ExtensionMessage): Promise<any> {
+  public static sendMessage(message: ExtensionMessage): Promise<unknown> {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(message, response => {
         if (chrome.runtime.lastError) {
@@ -13,7 +13,7 @@ export class MessageRouter {
     });
   }
 
-  public static sendToTab(tabId: number, message: ExtensionMessage): Promise<any> {
+  public static sendToTab(tabId: number, message: ExtensionMessage): Promise<unknown> {
     return new Promise((resolve, reject) => {
       chrome.tabs.sendMessage(tabId, message, response => {
         if (chrome.runtime.lastError) {
@@ -25,7 +25,7 @@ export class MessageRouter {
     });
   }
 
-  public static async extractActiveTab(): Promise<{ success: boolean; payload?: ExtractedPageData; error?: string }> {
+  public static async extractActiveTab(): Promise<unknown> {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab || !tab.id) {
       throw new Error('No active tab found.');
@@ -39,7 +39,7 @@ export class MessageRouter {
   public static async forwardToAI(
     payload: ExtractedPageData,
     userPreferences: Record<string, unknown> = { adaptLayout: true, highlightButtons: true }
-  ): Promise<any> {
+  ): Promise<unknown> {
     const headingsStr = (payload.headings || []).join(' | ');
     const buttonsStr = (payload.buttons || []).join(', ');
     const inputsStr = (payload.inputs || []).join(', ');
@@ -63,7 +63,7 @@ Visible Text: ${textPreview}`;
     });
   }
 
-  public static ping(): Promise<any> {
+  public static ping(): Promise<unknown> {
     return this.sendMessage({
       type: 'PING_BACKGROUND',
       payload: { timestamp: Date.now() },

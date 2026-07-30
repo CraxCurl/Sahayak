@@ -45,8 +45,8 @@ export class ReaderMode {
     ];
 
     this.hiddenElements = [];
-    selectorsToHide.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((el) => {
+    selectorsToHide.forEach(selector => {
+      document.querySelectorAll(selector).forEach(el => {
         const htmlEl = el as HTMLElement;
         if (htmlEl.style.display !== 'none') {
           htmlEl.setAttribute('data-sahayak-reader-hidden', htmlEl.style.display || 'block');
@@ -107,7 +107,7 @@ export class ReaderMode {
 
     this.cssInjector.removeCSS('reader-mode-layout');
 
-    this.hiddenElements.forEach((el) => {
+    this.hiddenElements.forEach(el => {
       const prevDisplay = el.getAttribute('data-sahayak-reader-hidden');
       el.style.display = prevDisplay === 'block' ? '' : prevDisplay || '';
       el.removeAttribute('data-sahayak-reader-hidden');

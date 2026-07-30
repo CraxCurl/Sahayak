@@ -171,7 +171,15 @@ export const FloatingToolbar: React.FC<FloatingToolbarProps> = ({
                 border: '1px solid #334155',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#cbd5e1' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '11px',
+                  color: '#cbd5e1',
+                }}
+              >
                 <Type size={14} /> Text Size ({Math.round(fontScale * 100)}%)
               </div>
 

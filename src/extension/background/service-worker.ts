@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener(
       return true;
     }
 
-        if (message.type === 'AI_RUN_ANALYSIS') {
+    if (message.type === 'AI_RUN_ANALYSIS') {
       const { textSummary, userPreferences } = message.payload;
       const senderTabId = sender.tab?.id;
       const pageUrl = sender.tab?.url || 'https://unknown';
@@ -83,7 +83,11 @@ chrome.runtime.onMessage.addListener(
             });
           }
 
-          sendResponse({ success: true, answer: res.answer, highlightSelector: res.highlightSelector });
+          sendResponse({
+            success: true,
+            answer: res.answer,
+            highlightSelector: res.highlightSelector,
+          });
         } catch (err) {
           console.error('[Sahayak Background Worker] Chat query error:', err);
           sendResponse({ success: false, error: String(err) });

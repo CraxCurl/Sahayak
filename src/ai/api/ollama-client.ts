@@ -85,7 +85,9 @@ export class OllamaGemmaClient {
       const rawResponse = data.response || '{}';
       const parsed = JSON.parse(rawResponse);
       return {
-        answer: parsed.answer || 'I evaluated the page context but could not generate a conclusive answer.',
+        answer:
+          parsed.answer ||
+          'I evaluated the page context but could not generate a conclusive answer.',
         highlightSelector: parsed.highlightSelector || undefined,
       };
     } catch (err) {
@@ -98,17 +100,24 @@ export class OllamaGemmaClient {
     const qLower = question.toLowerCase();
     if (qLower.includes('upload') || qLower.includes('document')) {
       return {
-        answer: 'You can upload your documents in the "Document Upload Section" located near the bottom of the scholarship application form.',
+        answer:
+          'You can upload your documents in the "Document Upload Section" located near the bottom of the scholarship application form.',
         highlightSelector: '#btn-upload-docs, input[type="file"], .document-upload-box',
       };
-    } else if (qLower.includes('required') || qLower.includes('field') || qLower.includes('input')) {
+    } else if (
+      qLower.includes('required') ||
+      qLower.includes('field') ||
+      qLower.includes('input')
+    ) {
       return {
-        answer: 'The required fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.',
+        answer:
+          'The required fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.',
         highlightSelector: '#full-name, #aadhaar-number, #annual-income',
       };
     } else if (qLower.includes('about') || qLower.includes('what')) {
       return {
-        answer: 'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.',
+        answer:
+          'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.',
         highlightSelector: 'header, h1',
       };
     }

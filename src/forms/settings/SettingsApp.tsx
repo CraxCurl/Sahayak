@@ -60,7 +60,9 @@ export const SettingsApp: React.FC = () => {
               <Sliders className="w-6 h-6 text-sky-400" />
               <div>
                 <h1 className="text-lg font-bold text-slate-100">Sahayak Settings</h1>
-                <p className="text-xs text-slate-400">Configure local Ollama Gemma 3 and preferences</p>
+                <p className="text-xs text-slate-400">
+                  Configure local Ollama Gemma 3 and preferences
+                </p>
               </div>
             </header>
 

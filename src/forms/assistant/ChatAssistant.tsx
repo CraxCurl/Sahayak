@@ -93,17 +93,21 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
 
   const handleFallbackResponse = (userQuery: string) => {
     const lower = userQuery.toLowerCase();
-    let text = 'I parsed the webpage content. Ensure all required details are accurate before submitting!';
+    let text =
+      'I parsed the webpage content. Ensure all required details are accurate before submitting!';
     let highlightSelector: string | undefined = undefined;
 
     if (lower.includes('upload') || lower.includes('document')) {
-      text = 'You can upload your documents in the "Document Upload Section" located near the bottom of the form.';
+      text =
+        'You can upload your documents in the "Document Upload Section" located near the bottom of the form.';
       highlightSelector = '#btn-upload-docs, input[type="file"], .document-upload-box';
     } else if (lower.includes('required') || lower.includes('field')) {
-      text = 'Mandatory fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.';
+      text =
+        'Mandatory fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.';
       highlightSelector = '#full-name, #aadhaar-number, #annual-income';
     } else if (lower.includes('about') || lower.includes('what')) {
-      text = 'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.';
+      text =
+        'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.';
       highlightSelector = 'header, h1';
     }
 
