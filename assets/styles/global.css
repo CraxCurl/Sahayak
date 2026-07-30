@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-sky-500 selection:text-white;
+  }
+}
+
+/* Scoped classes injected dynamically onto target DOM pages */
+.sahayak-simplified {
+  @apply bg-sky-500/10 text-sky-200 border-b border-sky-400/40 px-1 py-0.5 rounded cursor-help transition-colors;
+}
+
+.sahayak-highlight {
+  @apply ring-2 ring-yellow-400 ring-offset-2 ring-offset-slate-900 transition-all duration-300;
+}

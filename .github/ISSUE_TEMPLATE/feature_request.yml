@@ -1,0 +1,26 @@
+name: Feature Request
+description: Suggest an idea or feature for Sahayak
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: Suggest an enhancement or new capability for Sahayak.
+  - type: dropdown
+    id: module
+    attributes:
+      label: Target Module
+      options:
+        - Developer 1: Extension Shell (src/extension)
+        - Developer 2: DOM & Adaptive Engine (src/dom)
+        - Developer 3: AI & Ollama (src/ai)
+        - Developer 4: Forms & Preferences (src/forms)
+        - Shared Infrastructure (src/shared)
+    validations:
+      required: true
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Feature Description
+      description: Describe the feature you would like to see added.
+    validations:
+      required: true
