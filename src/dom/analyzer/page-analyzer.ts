@@ -107,16 +107,26 @@ export class PageAnalyzer {
 
   public analyzeCurrentPage(): PageSummaryResult {
     const data = this.extractPageData();
-    const headingsStr = data.headings.slice(0, 10).join(' | ');
-    const inputsStr = data.inputs.slice(0, 10).join(', ');
-    const paragraphText = data.text.slice(0, 800);
+    const headingsStr = data.headings.join(' | ');
+    const buttonsStr = data.buttons.join(', ');
+    const inputsStr = data.inputs.join(', ');
+    const formsStr = data.forms
+      .map(f => `Form[${f.id || f.name || 'main'}]: ${f.fieldCount} fields (Action: ${f.action || 'self'})`)
+      .join('; ');
 
-    const textSummary = `Title: ${data.title}\nHeadings: ${headingsStr}\nForm Inputs: ${inputsStr}\nParagraph Extract: ${paragraphText}`;
+    const textSummary = `Page Title: ${data.title}
+Page URL: ${data.url}
+All Headings: ${headingsStr}
+All Interactive Buttons: ${buttonsStr}
+All Form Inputs & Fields: ${inputsStr}
+Detected Forms: ${formsStr || 'None'}
+Full Visible Page Text Content:
+${data.text}`;
 
     const interactiveSelectors = Array.from(
-      document.querySelectorAll('button, a[href], input[type="submit"]')
+      document.querySelectorAll('button, a[href], input[type="submit"], input[type="file"]')
     )
-      .slice(0, 15)
+      .slice(0, 30)
       .map(el => {
         if (el.id) return `#${el.id}`;
         if (el.className && typeof el.className === 'string') {
