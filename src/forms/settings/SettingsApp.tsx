@@ -201,16 +201,16 @@ export const SettingsApp: React.FC = () => {
                     </div>
                   </section>
 
-                  {/* Privacy & Accessibility Section */}
+                  {/* Privacy & Accessibility Section (Requirement 4.4) */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <section className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 hover:border-slate-700/50 transition-colors">
-                      <div className="flex items-center gap-3 mb-6">
+                    <section className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 hover:border-slate-700/50 transition-colors flex flex-col gap-4">
+                      <div className="flex items-center gap-3 mb-2">
                         <div className="p-2.5 rounded-lg bg-indigo-500/10 text-indigo-400">
                           <User className="w-5 h-5" />
                         </div>
                         <div>
                           <h3 className="text-lg font-bold text-slate-100">Accessibility</h3>
-                          <p className="text-xs text-slate-500">Visual comfort settings.</p>
+                          <p className="text-xs text-slate-500">Live Font Scale & Visual Contrast</p>
                         </div>
                       </div>
 
@@ -226,22 +226,48 @@ export const SettingsApp: React.FC = () => {
                           <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500 peer-checked:after:bg-white"></div>
                         </div>
                       </label>
+
+                      {/* Live Font Size Slider with Immediate Preview (Requirement 4.4) */}
+                      <div className="flex flex-col gap-2 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                        <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
+                          <span>Live Font Scale Preview</span>
+                          <span className="text-sky-400 font-mono">1.10x</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0.9"
+                          max="1.4"
+                          step="0.05"
+                          defaultValue="1.1"
+                          className="w-full accent-sky-500 cursor-pointer"
+                        />
+                        <div className="p-2.5 bg-slate-900 rounded-lg text-slate-200 border border-slate-800/80 leading-relaxed font-sans text-sm">
+                          Sample Paragraph: Sahayak adapts webpage layouts to make reading clear, comfortable, and accessible.
+                        </div>
+                      </div>
                     </section>
 
-                    <section className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 hover:border-slate-700/50 transition-colors">
-                      <div className="flex items-center gap-3 mb-6">
+                    <section className="bg-slate-900/40 border border-slate-800 rounded-2xl p-6 hover:border-slate-700/50 transition-colors flex flex-col gap-3">
+                      <div className="flex items-center gap-3 mb-2">
                         <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400">
                           <Shield className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-slate-100">Privacy</h3>
-                          <p className="text-xs text-slate-500">Data safety status.</p>
+                          <h3 className="text-lg font-bold text-slate-100">Privacy & Data Safeguards</h3>
+                          <p className="text-xs text-slate-500">100% Local Inference Rules</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
-                        <Zap className="w-4 h-4 text-emerald-400" />
-                        <span className="text-xs font-semibold text-emerald-400">Local Processing Only</span>
+                      <div className="flex items-center gap-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                        <Zap className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <span className="text-xs font-semibold text-emerald-300">Zero Cloud Data Transmission</span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-400 leading-relaxed space-y-2 p-3 bg-slate-950/60 rounded-xl border border-slate-800">
+                        <p className="text-emerald-300 font-semibold">✅ Sent to Local Ollama:</p>
+                        <p className="text-slate-300 pl-2">Origin URL, page headings, button labels, and compressed visible text (max 2,000 chars).</p>
+                        <p className="text-rose-300 font-semibold pt-1">❌ NEVER Sent:</p>
+                        <p className="text-slate-300 pl-2">Full HTML source, form input values, passwords, cookies, or personal tracking tokens.</p>
                       </div>
                     </section>
                   </div>

@@ -20,6 +20,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
   const [isOpen, setIsOpen] = useState(embedded);
   const [inputQuery, setInputQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState<'reading' | 'analyzing' | 'generating'>('reading');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome-1',
@@ -54,11 +55,14 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     setMessages(prev => [...prev, userMsg]);
     setInputQuery('');
     setIsLoading(true);
+    setLoadingStage('reading');
 
     let summaryData: any = undefined;
     let pageUrl: string = '';
 
     try {
+      setTimeout(() => setLoadingStage('analyzing'), 600);
+
       // If we are in the dashboard/options page, we need to extract from the active web tab
       if (window.location.protocol.startsWith('chrome-extension')) {
         const response = (await MessageRouter.extractActiveTab()) as
@@ -74,6 +78,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
         summaryData = analyzerRef.current.analyzeCurrentPage();
         pageUrl = window.location.href || summaryData.pageUrl;
       }
+
+      setLoadingStage('generating');
 
       if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
         chrome.runtime.sendMessage(
@@ -313,9 +319,13 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
         ))}
 
         {isLoading && (
-          <div className="self-start flex items-center gap-2 px-3 py-2 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs text-slate-400">
+          <div className="self-start flex items-center gap-2 px-3 py-2 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs text-slate-300 animate-pulse">
             <Sparkles className="w-3.5 h-3.5 text-sky-400 animate-spin" />
-            <span>Analyzing webpage context with Gemma 3...</span>
+            <span>
+              {loadingStage === 'reading' && 'Reading page content...'}
+              {loadingStage === 'analyzing' && 'Analyzing structure & controls...'}
+              {loadingStage === 'generating' && 'Generating Gemma 3 response...'}
+            </span>
           </div>
         )}
 

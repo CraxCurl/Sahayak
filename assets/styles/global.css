@@ -2,9 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary-500: #0ea5e9;
+  --color-primary-400: #38bdf8;
+  --color-bg-dark: #020617;
+  --color-card-dark: #0f172a;
+  --color-border-dark: #1e293b;
+  --color-text-dark: #f8fafc;
+  --color-text-muted: #94a3b8;
+  --focus-ring: 0 0 0 3px #38bdf8;
+}
+
 @layer base {
   body {
     @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-sky-500 selection:text-white;
+  }
+
+  /* Full keyboard navigation focus rings (Requirement 4.6) */
+  *:focus-visible {
+    outline: 2px solid #38bdf8 !important;
+    outline-offset: 2px !important;
+  }
+}
+
+/* Reduced motion accessibility override (Requirement 4.1) */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

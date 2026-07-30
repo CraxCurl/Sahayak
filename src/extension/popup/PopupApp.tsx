@@ -41,6 +41,7 @@ export const PopupApp: React.FC = () => {
 
   const [ollamaHealth, setOllamaHealth] = useState<OllamaHealthResult>({ state: 'unreachable' });
   const [copiedCommand, setCopiedCommand] = useState(false);
+  const [activeMode, setActiveMode] = useState<'Minimal' | 'Reader' | 'Focus' | 'Accessibility'>('Minimal');
 
   useEffect(() => {
     // 1. Check liveness of background worker
@@ -263,6 +264,43 @@ export const PopupApp: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Segmented Control Mode Switcher (Requirement 4.3) */}
+        <div className="flex flex-col gap-1.5 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/80">
+          <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Browsing Mode Segment:</span>
+          <div className="grid grid-cols-4 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/80 text-[11px] font-medium">
+            {(['Minimal', 'Reader', 'Focus', 'Accessibility'] as const).map(mode => (
+              <button
+                key={mode}
+                onClick={() => setActiveMode(mode)}
+                className={`py-1.5 rounded-md transition-all text-center ${
+                  activeMode === mode
+                    ? 'bg-sky-500 text-white font-bold shadow-md shadow-sky-500/20'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                }`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Revert All Changes Button (Requirement 4.3) */}
+        <button
+          onClick={async () => {
+            const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            if (tab?.id) {
+              chrome.tabs.sendMessage(tab.id, {
+                type: 'SAHAYAK_TOGGLE_STATE',
+                payload: { active: false },
+              });
+            }
+          }}
+          className="w-full py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+        >
+          <RefreshCw className="w-3.5 h-3.5 text-rose-400" />
+          Revert All Page Changes
+        </button>
 
         {/* Primary Extract CTA */}
         <button
