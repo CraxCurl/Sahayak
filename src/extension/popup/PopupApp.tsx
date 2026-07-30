@@ -93,6 +93,9 @@ export const PopupApp: React.FC = () => {
       }
     } catch (err: unknown) {
       console.error(err);
+      setErrorMessage(
+        'Failed to communicate with the page. Sahayak cannot run on Chrome internal pages (chrome://) or restricted sites. Try reloading a normal webpage.'
+      );
     } finally {
       setIsExtracting(false);
     }

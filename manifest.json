@@ -9,6 +9,7 @@
     "scripting",
     "sidePanel"
   ],
+  "options_page": "options.html",
   "host_permissions": [
     "<all_urls>"
   ],
