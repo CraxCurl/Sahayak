@@ -1,4 +1,5 @@
 import { ExtractedForm, ExtractedPageData } from '@shared/types/messages';
+import { compressContext } from './context-compressor';
 
 export interface PageSummaryResult extends ExtractedPageData {
   pageUrl: string;
@@ -107,21 +108,47 @@ export class PageAnalyzer {
 
   public analyzeCurrentPage(): PageSummaryResult {
     const data = this.extractPageData();
-    const headingsStr = data.headings.join(' | ');
-    const buttonsStr = data.buttons.join(', ');
-    const inputsStr = data.inputs.join(', ');
+    
+    // Privacy protection: Origin URL only (Requirement 3.1)
+    let originUrl = data.url;
+    try {
+      originUrl = new URL(data.url).origin;
+    } catch {
+      originUrl = data.url;
+    }
+
+    const headingsList = data.headings.slice(0, 15).join(' | ');
+    const buttonsStr = data.buttons.slice(0, 20).join(', ');
+    const inputsStr = data.inputs.slice(0, 15).join(', ');
     const formsStr = data.forms
-      .map(f => `Form[${f.id || f.name || 'main'}]: ${f.fieldCount} fields (Action: ${f.action || 'self'})`)
+      .map(f => `Form[${f.id || f.name || 'main'}]: ${f.fieldCount} fields`)
       .join('; ');
 
-    const textSummary = `Page Title: ${data.title}
-Page URL: ${data.url}
-All Headings: ${headingsStr}
-All Interactive Buttons: ${buttonsStr}
-All Form Inputs & Fields: ${inputsStr}
-Detected Forms: ${formsStr || 'None'}
-Full Visible Page Text Content:
-${data.text}`;
+    // Detect landmarks (<nav>, <main>, <aside>, <footer>)
+    const landmarks: string[] = [];
+    ['nav', 'main', 'aside', 'footer', '[role="main"]', '[role="navigation"]'].forEach(sel => {
+      const els = document.querySelectorAll(sel);
+      if (els.length > 0) {
+        landmarks.push(`${sel} (${els.length})`);
+      }
+    });
+
+    // Compute metrics
+    const adClassCount = document.querySelectorAll('.ad, .banner, .sidebar, [role="complementary"]').length;
+    const bodyLength = data.text.length;
+
+    const rawSummary = `Title: ${data.title}
+Origin URL: ${originUrl}
+Headings (capped 15): ${headingsList}
+Landmarks: ${landmarks.join(', ') || 'Standard body'}
+Buttons (above-fold): ${buttonsStr}
+Form Fields: ${inputsStr}
+Forms: ${formsStr || 'None'}
+Metrics: adClassCount=${adClassCount}, visibleChars=${bodyLength}
+Content Snippet:
+${data.text.slice(0, 1200)}`;
+
+    const textSummary = compressContext(rawSummary, 2000);
 
     const interactiveSelectors = Array.from(
       document.querySelectorAll('button, a[href], input[type="submit"], input[type="file"]')
