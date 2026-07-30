@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Key, User, Sliders } from 'lucide-react';
-
-import React, { useState } from 'react';
-import { createRoot } from 'react-dom/client';
 import { Key, User, Sliders, MessageSquare, Settings as SettingsIcon } from 'lucide-react';
 import { ChatAssistant } from '@forms/assistant/ChatAssistant';
 

@@ -39,6 +39,18 @@ export const InjectCSSActionSchema = BaseActionSchema.extend({
   scopeId: z.string(),
 });
 
+export const AutofillActionSchema = BaseActionSchema.extend({
+  type: z.literal('AUTOFILL_FORM'),
+  fieldValues: z.record(z.string(), z.string()),
+});
+
+export const AccessibilityEnhanceActionSchema = BaseActionSchema.extend({
+  type: z.literal('ACCESSIBILITY_ENHANCE'),
+  contrastRatio: z.number().optional(),
+  fontSizeIncreasePx: z.number().optional(),
+  ariaLabelFixes: z.record(z.string(), z.string()).optional(),
+});
+
 export const SahayakActionManifestZodSchema = z.object({
   version: z.string().default('1.0'),
   pageUrl: z.string(),
@@ -49,6 +61,8 @@ export const SahayakActionManifestZodSchema = z.object({
       HideActionSchema,
       SimplifyTextActionSchema,
       InjectCSSActionSchema,
+      AutofillActionSchema,
+      AccessibilityEnhanceActionSchema,
     ])
   ),
 });

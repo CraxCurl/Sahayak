@@ -41,7 +41,7 @@ export class ChatOverlayManager {
 
     document.body.appendChild(this.shadowHost);
     this.reactRoot = createRoot(container);
-    this.reactRoot.render(<ChatAssistant onClose={() => this.unmount()} />);
+    this.reactRoot.render(React.createElement(ChatAssistant, { onClose: () => this.unmount() }));
   }
 
   public unmount(): void {
