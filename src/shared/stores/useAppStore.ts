@@ -9,11 +9,11 @@ interface AppState {
   setActiveTabUrl: (url: string) => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>(set => ({
   isExtensionActive: true,
   isAnalyzing: false,
   activeTabUrl: '',
-  setExtensionActive: (active) => set({ isExtensionActive: active }),
-  setAnalyzing: (analyzing) => set({ isAnalyzing: analyzing }),
-  setActiveTabUrl: (url) => set({ activeTabUrl: url }),
+  setExtensionActive: active => set({ isExtensionActive: active }),
+  setAnalyzing: analyzing => set({ isAnalyzing: analyzing }),
+  setActiveTabUrl: url => set({ activeTabUrl: url }),
 }));

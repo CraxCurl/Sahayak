@@ -18,11 +18,12 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage) => {
 // Auto analyze page on idle load
 setTimeout(() => {
   const summary = analyzer.analyzeCurrentPage();
-  chrome.runtime.sendMessage<ExtensionMessage<'AI_RUN_ANALYSIS'>>({
+  const msg: ExtensionMessage = {
     type: 'AI_RUN_ANALYSIS',
     payload: {
       textSummary: summary.textSummary,
       userPreferences: { adaptLayout: true, highlightButtons: true },
     },
-  });
+  };
+  chrome.runtime.sendMessage(msg);
 }, 1000);

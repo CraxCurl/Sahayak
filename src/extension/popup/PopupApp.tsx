@@ -52,9 +52,12 @@ export const PopupApp: React.FC = () => {
 
         <button
           onClick={() => {
-            chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
               if (tabs[0]?.id) {
-                chrome.tabs.sendMessage(tabs[0].id, { type: 'DOM_ANALYZE_PAGE', payload: { pageUrl: tabs[0].url || '' } });
+                chrome.tabs.sendMessage(tabs[0].id, {
+                  type: 'DOM_ANALYZE_PAGE',
+                  payload: { pageUrl: tabs[0].url || '' },
+                });
               }
             });
           }}

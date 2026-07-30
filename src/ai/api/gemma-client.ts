@@ -8,7 +8,9 @@ export class GemmaClient {
 
   constructor(apiKey: string, endpoint?: string) {
     this.apiKey = apiKey;
-    this.endpoint = endpoint || 'https://generativelanguage.googleapis.com/v1beta/models/gemma-7b-it:generateContent';
+    this.endpoint =
+      endpoint ||
+      'https://generativelanguage.googleapis.com/v1beta/models/gemma-7b-it:generateContent';
   }
 
   public async generatePageAdaptation(

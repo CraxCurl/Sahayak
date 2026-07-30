@@ -5,7 +5,10 @@ export function parseAndValidateGemmaOutput(rawOutput: string): SahayakActionMan
   // Strip markdown fenced code blocks if present
   let cleaned = rawOutput.trim();
   if (cleaned.startsWith('```json')) {
-    cleaned = cleaned.replace(/^```json/, '').replace(/```$/, '').trim();
+    cleaned = cleaned
+      .replace(/^```json/, '')
+      .replace(/```$/, '')
+      .trim();
   } else if (cleaned.startsWith('```')) {
     cleaned = cleaned.replace(/^```/, '').replace(/```$/, '').trim();
   }
@@ -15,6 +18,8 @@ export function parseAndValidateGemmaOutput(rawOutput: string): SahayakActionMan
     return SahayakActionManifestZodSchema.parse(rawJson) as SahayakActionManifest;
   } catch (error) {
     console.error('[Sahayak AI Parser] Schema validation failed:', error);
-    throw new Error(`Failed to parse Gemma output into valid Sahayak action manifest: ${String(error)}`);
+    throw new Error(
+      `Failed to parse Gemma output into valid Sahayak action manifest: ${String(error)}`
+    );
   }
 }

@@ -14,7 +14,7 @@ interface PreferencesState {
   updatePreferences: (partial: Partial<UserPreferences>) => void;
 }
 
-export const useUserPreferencesStore = create<PreferencesState>((set) => ({
+export const useUserPreferencesStore = create<PreferencesState>(set => ({
   preferences: {
     enableHighContrast: false,
     enableTextSimplification: true,
@@ -23,8 +23,8 @@ export const useUserPreferencesStore = create<PreferencesState>((set) => ({
     ollamaUrl: 'http://localhost:11434',
     ollamaModel: 'gemma3:4b',
   },
-  updatePreferences: (partial) =>
-    set((state) => ({
+  updatePreferences: partial =>
+    set(state => ({
       preferences: { ...state.preferences, ...partial },
     })),
 }));

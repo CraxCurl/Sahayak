@@ -1,15 +1,18 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Key, Shield, User, Sliders } from 'lucide-react';
+import { Key, User, Sliders } from 'lucide-react';
 
 export const SettingsApp: React.FC = () => {
-  const [apiKey, setApiKey] = useState('');
+  const [ollamaUrl, setOllamaUrl] = useState('http://localhost:11434');
   const [highContrast, setHighContrast] = useState(false);
 
   const handleSave = () => {
-    chrome.storage.local.set({ sahayak_gemma_api_key: apiKey, sahayak_high_contrast: highContrast }, () => {
-      alert('Settings saved successfully!');
-    });
+    chrome.storage.local.set(
+      { sahayak_ollama_url: ollamaUrl, sahayak_high_contrast: highContrast },
+      () => {
+        alert('Settings saved successfully!');
+      }
+    );
   };
 
   return (
@@ -18,7 +21,7 @@ export const SettingsApp: React.FC = () => {
         <Sliders className="w-6 h-6 text-sky-400" />
         <div>
           <h1 className="text-lg font-bold text-slate-100">Sahayak Settings</h1>
-          <p className="text-xs text-slate-400">Configure AI provider and user preferences</p>
+          <p className="text-xs text-slate-400">Configure local Ollama Gemma 3 and preferences</p>
         </div>
       </header>
 
@@ -26,13 +29,13 @@ export const SettingsApp: React.FC = () => {
         <section className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
             <Key className="w-4 h-4 text-sky-400" />
-            Google Gemma API Configuration
+            Local Ollama Server Endpoint
           </div>
           <input
-            type="password"
-            placeholder="Enter Google Gemma API Key"
-            value={apiKey}
-            onChange={e => setApiKey(e.target.value)}
+            type="text"
+            placeholder="http://localhost:11434"
+            value={ollamaUrl}
+            onChange={e => setOllamaUrl(e.target.value)}
             className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-sky-500"
           />
         </section>

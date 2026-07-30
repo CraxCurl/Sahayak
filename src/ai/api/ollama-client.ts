@@ -43,7 +43,10 @@ export class OllamaGemmaClient {
       const rawResponse = data.response || '';
       return parseAndValidateGemmaOutput(rawResponse);
     } catch (err) {
-      console.warn('[Ollama Client] Could not connect to local Ollama server, falling back to mock response:', err);
+      console.warn(
+        '[Ollama Client] Could not connect to local Ollama server, falling back to mock response:',
+        err
+      );
       return this.getFallbackMockManifest(pageUrl);
     }
   }
