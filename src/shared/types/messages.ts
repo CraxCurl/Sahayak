@@ -6,7 +6,18 @@ export type MessageType =
   | 'AI_RUN_ANALYSIS'
   | 'AI_ACTIONS_READY'
   | 'SETTINGS_UPDATE'
-  | 'PING_BACKGROUND';
+  | 'PING_BACKGROUND'
+  | 'CHAT_QUERY_REQUEST'
+  | 'CHAT_QUERY_RESPONSE'
+  | 'HIGHLIGHT_TARGET_ELEMENT';
+
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'assistant';
+  text: string;
+  timestamp: number;
+  highlightSelector?: string;
+}
 
 export interface MessagePayloadMap {
   DOM_ANALYZE_PAGE: { pageUrl: string; forceFresh?: boolean };
@@ -20,6 +31,9 @@ export interface MessagePayloadMap {
   AI_ACTIONS_READY: { manifest: SahayakActionManifest };
   SETTINGS_UPDATE: { theme: 'light' | 'dark'; gemmaApiKey: string };
   PING_BACKGROUND: { timestamp: number };
+  CHAT_QUERY_REQUEST: { question: string; pageUrl: string; textSummary: string };
+  CHAT_QUERY_RESPONSE: { answer: string; highlightSelector?: string };
+  HIGHLIGHT_TARGET_ELEMENT: { selector: string; label?: string };
 }
 
 export type ExtensionMessage =
@@ -44,4 +58,20 @@ export type ExtensionMessage =
       type: 'PING_BACKGROUND';
       payload: MessagePayloadMap['PING_BACKGROUND'];
       senderTabId?: number;
+    }
+  | {
+      type: 'CHAT_QUERY_REQUEST';
+      payload: MessagePayloadMap['CHAT_QUERY_REQUEST'];
+      senderTabId?: number;
+    }
+  | {
+      type: 'CHAT_QUERY_RESPONSE';
+      payload: MessagePayloadMap['CHAT_QUERY_RESPONSE'];
+      senderTabId?: number;
+    }
+  | {
+      type: 'HIGHLIGHT_TARGET_ELEMENT';
+      payload: MessagePayloadMap['HIGHLIGHT_TARGET_ELEMENT'];
+      senderTabId?: number;
     };
+

@@ -59,6 +59,39 @@ export class SafeDOMExecutor {
     this.appliedStyles.set(id, styleEl);
   }
 
+  public highlightAndScrollTo(selector: string, color = '#38bdf8'): void {
+    try {
+      const elements = document.querySelectorAll(selector);
+      if (elements.length === 0) return;
+
+      const firstEl = elements[0] as HTMLElement;
+      firstEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      elements.forEach(el => {
+        const htmlEl = el as HTMLElement;
+        const origOutline = htmlEl.style.outline;
+        const origBoxShadow = htmlEl.style.boxShadow;
+        const origTransition = htmlEl.style.transition;
+
+        htmlEl.style.transition = 'all 0.3s ease-in-out';
+        htmlEl.style.outline = `4px solid ${color}`;
+        htmlEl.style.outlineOffset = '4px';
+        htmlEl.style.boxShadow = `0 0 20px ${color}80`;
+
+        setTimeout(() => {
+          htmlEl.style.outline = `4px solid ${color}aa`;
+          setTimeout(() => {
+            htmlEl.style.outline = origOutline;
+            htmlEl.style.boxShadow = origBoxShadow;
+            htmlEl.style.transition = origTransition;
+          }, 3500);
+        }, 1500);
+      });
+    } catch (err) {
+      console.warn(`[Sahayak DOM Engine] Could not highlight selector "${selector}":`, err);
+    }
+  }
+
   public revertAll(): void {
     this.originalContentMap.forEach((originalHTML, element) => {
       element.innerHTML = originalHTML;
