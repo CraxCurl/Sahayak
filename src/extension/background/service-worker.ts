@@ -8,6 +8,11 @@ chrome.runtime.onInstalled.addListener(() => {
   console.log('[Sahayak Background Worker] Extension installed successfully');
 });
 
+/**
+ * Manifest V3 Service Worker Message Router.
+ * Handles inter-process communication (IPC) between content scripts, popup, sidepanel,
+ * and the local Ollama Gemma 3 AI client.
+ */
 chrome.runtime.onMessage.addListener(
   (message: ExtensionMessage, sender, sendResponse): boolean | void => {
     console.log('[Sahayak Background Worker] Received message:', message.type);

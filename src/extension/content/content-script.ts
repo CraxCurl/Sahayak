@@ -5,11 +5,20 @@ import { ExtensionMessage } from '@shared/types/messages';
 
 console.log('[Sahayak Content Script] Injected onto page:', window.location.href);
 
+/**
+ * Initialize core Sahayak content script services:
+ * - PageAnalyzer: extracts structured text, headings, buttons, and form metadata from active DOM.
+ * - SafeDOMExecutor: executes reversible DOM adaptations (highlight, hide, simplify text, accessibility).
+ * - ChatOverlayManager: controls Shadow DOM isolation container for floating AI Assistant UI.
+ */
 const analyzer = new PageAnalyzer();
 const executor = new SafeDOMExecutor();
 const chatOverlay = new ChatOverlayManager();
 
-// Function to trigger Ollama AI analysis automatically
+/**
+ * Triggers full webpage DOM analysis and dispatches an asynchronous `AI_RUN_ANALYSIS` message
+ * to the background service worker to process Gemma 3 AI UI adaptations.
+ */
 const triggerAutoAnalysis = () => {
   try {
     const summary = analyzer.analyzeCurrentPage();
@@ -26,7 +35,14 @@ const triggerAutoAnalysis = () => {
   }
 };
 
-// Listen for messages from background service worker / popup
+/**
+ * Extension Message Router Listener.
+ * Handles incoming IPC messages from the background service worker or popup popup/sidepanel UI:
+ * - AI_ACTIONS_READY: Executes generated action manifest (DOM mutation).
+ * - HIGHLIGHT_TARGET_ELEMENT: Scrolls to and highlights specific target element.
+ * - DOM_ANALYZE_PAGE: Synchronously returns extracted webpage structure JSON.
+ * - SAHAYAK_TOGGLE_STATE: Toggles extension active state (mount overlay & auto-analyze vs revertAll & unmount).
+ */
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
   if (message.type === 'AI_ACTIONS_READY') {
     console.log('[Sahayak Content Script] Received AI Action Manifest:', message.payload.manifest);
