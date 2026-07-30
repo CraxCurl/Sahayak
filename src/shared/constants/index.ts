@@ -3,9 +3,9 @@ export const SAHAYAK_CONSTANTS = {
   VERSION: '1.0.0',
   STORAGE_KEYS: {
     USER_PREFERENCES: 'sahayak_user_preferences',
-    GEMMA_API_KEY: 'sahayak_gemma_api_key',
+    OLLAMA_URL: 'sahayak_ollama_url',
     ACTION_CACHE: 'sahayak_action_cache',
   },
-  GEMMA_DEFAULT_MODEL: 'gemma-7b-it',
+  DEFAULT_OLLAMA_MODEL: 'gemma3:4b',
   MAX_PAGE_SUMMARY_LENGTH: 4000,
 } as const;
