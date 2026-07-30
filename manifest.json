@@ -17,12 +17,17 @@
     "service_worker": "src/extension/background/service-worker.ts",
     "type": "module"
   },
+  "icons": {
+    "16": "assets/icons/logo small.jpeg",
+    "48": "assets/icons/logo small.jpeg",
+    "128": "assets/icons/logo.jpeg"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
-      "16": "assets/icons/icon-16.png",
-      "48": "assets/icons/icon-48.png",
-      "128": "assets/icons/icon-128.png"
+      "16": "assets/icons/logo small.jpeg",
+      "48": "assets/icons/logo small.jpeg",
+      "128": "assets/icons/logo.jpeg"
     }
   },
   "side_panel": {

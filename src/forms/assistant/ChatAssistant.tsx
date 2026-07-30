@@ -39,7 +39,7 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     scrollToBottom();
   }, [messages, isLoading]);
 
-  const handleSendMessage = (queryText: string) => {
+  const handleSendMessage = async (queryText: string) => {
     const text = queryText.trim();
     if (!text || isLoading) return;
 
@@ -54,40 +54,67 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     setInputQuery('');
     setIsLoading(true);
 
-    const summaryData = analyzerRef.current.analyzeCurrentPage();
-    const pageUrl = window.location.href || summaryData.pageUrl;
+    let summaryData;
+    let pageUrl;
 
-    if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
-      chrome.runtime.sendMessage(
-        {
-          type: 'CHAT_QUERY_REQUEST',
-          payload: {
-            question: text,
-            pageUrl,
-            textSummary: summaryData.textSummary,
-          },
-        },
-        response => {
-          setIsLoading(false);
-          if (response && response.success) {
-            const aiMsg: ChatMessage = {
-              id: `ai-${Date.now()}`,
-              sender: 'assistant',
-              text: response.answer,
-              timestamp: Date.now(),
-              highlightSelector: response.highlightSelector,
-            };
-            setMessages(prev => [...prev, aiMsg]);
-          } else {
-            handleFallbackResponse(text);
-          }
+    try {
+      // If we are in the dashboard/options page, we need to extract from the active web tab
+      if (window.location.protocol.startsWith('chrome-extension')) {
+        const response = (await MessageRouter.extractActiveTab()) as
+          { success: boolean; payload?: any; error?: string } | undefined;
+        if (response && response.success && response.payload) {
+          summaryData = response.payload;
+          pageUrl = summaryData.url;
+        } else {
+          throw new Error(response?.error || 'Could not reach the active webpage.');
         }
-      );
-    } else {
-      setTimeout(() => {
-        setIsLoading(false);
-        handleFallbackResponse(text);
-      }, 600);
+      } else {
+        // We are already in the content script
+        summaryData = analyzerRef.current.analyzeCurrentPage();
+        pageUrl = window.location.href || summaryData.pageUrl;
+      }
+
+      if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+        chrome.runtime.sendMessage(
+          {
+            type: 'CHAT_QUERY_REQUEST',
+            payload: {
+              question: text,
+              pageUrl,
+              textSummary: summaryData.textSummary || summaryData.text,
+            },
+          },
+          response => {
+            setIsLoading(false);
+            if (response && response.success) {
+              const aiMsg: ChatMessage = {
+                id: `ai-${Date.now()}`,
+                sender: 'assistant',
+                text: response.answer,
+                timestamp: Date.now(),
+                highlightSelector: response.highlightSelector,
+              };
+              setMessages(prev => [...prev, aiMsg]);
+            } else {
+              handleFallbackResponse(text);
+            }
+          }
+        );
+      } else {
+        setTimeout(() => {
+          setIsLoading(false);
+          handleFallbackResponse(text);
+        }, 600);
+      }
+    } catch (err: any) {
+      setIsLoading(false);
+      const errorMsg: ChatMessage = {
+        id: `err-${Date.now()}`,
+        sender: 'assistant',
+        text: `Error: ${err.message}. Make sure you have a website open in another tab and it's not a restricted page.`,
+        timestamp: Date.now(),
+      };
+      setMessages(prev => [...prev, errorMsg]);
     }
   };
 
@@ -214,25 +241,29 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
               msg.sender === 'user' ? 'self-end items-end' : 'self-start items-start'
             }`}
           >
-            <div className="flex items-center gap-1.5 px-1 text-[10px] text-slate-400 font-medium">
+            <div className="flex items-center gap-1.5 px-1 text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">
               {msg.sender === 'user' ? (
                 <>
                   <span>You</span>
-                  <User className="w-3 h-3 text-sky-400" />
+                  <div className="w-5 h-5 rounded-full bg-sky-500/20 flex items-center justify-center border border-sky-500/30">
+                    <User className="w-3 h-3 text-sky-400" />
+                  </div>
                 </>
               ) : (
                 <>
-                  <Bot className="w-3 h-3 text-indigo-400" />
+                  <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
+                    <Bot className="w-3 h-3 text-indigo-400" />
+                  </div>
                   <span>Sahayak AI</span>
                 </>
               )}
             </div>
 
             <div
-              className={`p-3 text-xs leading-relaxed rounded-2xl shadow-sm ${
+              className={`p-3.5 text-[13px] leading-relaxed rounded-2xl shadow-xl transition-all hover:shadow-sky-900/10 ${
                 msg.sender === 'user'
-                  ? 'bg-sky-600 text-white rounded-br-none border border-sky-400/20'
-                  : 'bg-slate-900/90 border border-slate-800/90 text-slate-200 rounded-bl-none'
+                  ? 'bg-sky-600 text-white rounded-tr-none border border-sky-400/20'
+                  : 'bg-slate-900/95 border border-slate-800/90 text-slate-200 rounded-tl-none'
               }`}
             >
               <p className="whitespace-pre-wrap">{msg.text}</p>

@@ -26,14 +26,50 @@ export class MessageRouter {
   }
 
   public static async extractActiveTab(): Promise<unknown> {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !tab.id) {
-      throw new Error('No active tab found.');
+    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+    // If the active tab is an extension page (like the dashboard), find the last active web tab
+    if (tab?.url?.startsWith('chrome-extension://')) {
+      const allTabs = await chrome.tabs.query({ currentWindow: true });
+      tab = allTabs
+        .filter(t => t.url && !t.url.startsWith('chrome-extension://') && !t.url.startsWith('chrome://'))
+        .sort((a, b) => (b.id || 0) - (a.id || 0))[0] || tab;
     }
-    return this.sendToTab(tab.id, {
-      type: 'DOM_ANALYZE_PAGE',
-      payload: { pageUrl: tab.url || '' },
-    });
+
+    if (!tab || !tab.id) {
+      throw new Error('No active web tab found.');
+    }
+
+    try {
+      return await this.sendToTab(tab.id, {
+        type: 'DOM_ANALYZE_PAGE',
+        payload: { pageUrl: tab.url || '' },
+      });
+    } catch (err: any) {
+      // If content script is not loaded, try to inject it manually
+      if (err.message.includes('Could not establish connection') || err.message.includes('Receiving end does not exist')) {
+        console.log('[MessageRouter] Content script not found, attempting manual injection...');
+
+        try {
+          await chrome.scripting.executeScript({
+            target: { tabId: tab.id! },
+            files: ['src/extension/content/content-script.ts']
+          });
+
+          // Wait for injection
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          return await this.sendToTab(tab.id!, {
+            type: 'DOM_ANALYZE_PAGE',
+            payload: { pageUrl: tab.url || '' },
+          });
+        } catch (injectionErr) {
+          console.error('[MessageRouter] Injection failed:', injectionErr);
+          throw new Error('Could not communicate with the page. Please reload the tab and try again.');
+        }
+      }
+      throw err;
+    }
   }
 
   public static async forwardToAI(

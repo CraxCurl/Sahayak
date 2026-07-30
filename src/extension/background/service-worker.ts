@@ -20,7 +20,7 @@ chrome.runtime.onMessage.addListener(
     if (message.type === 'AI_RUN_ANALYSIS') {
       const { textSummary, userPreferences } = message.payload;
       const senderTabId = sender.tab?.id;
-      const pageUrl = sender.tab?.url || 'https://unknown';
+      const isFromExtensionPage = sender.url?.startsWith('chrome-extension://');
 
       // Load dynamic host URL from chrome storage, .env configuration, or default fallback
       chrome.storage.local.get([SAHAYAK_CONSTANTS.STORAGE_KEYS.OLLAMA_URL], async items => {
@@ -32,20 +32,29 @@ chrome.runtime.onMessage.addListener(
         const client = new OllamaGemmaClient(configuredUrl);
 
         try {
+          // Determine the target tab for analysis
+          let targetTab: chrome.tabs.Tab | undefined;
+
+          if (isFromExtensionPage) {
+            // Find the most recently active non-extension tab
+            const tabs = await chrome.tabs.query({ currentWindow: true });
+            targetTab = tabs
+              .filter(t => t.url && !t.url.startsWith('chrome-extension://') && !t.url.startsWith('chrome://'))
+              .sort((a, b) => (b.id || 0) - (a.id || 0))[0]; // Fallback logic: newest non-system tab
+          } else {
+            targetTab = sender.tab;
+          }
+
+          const pageUrl = targetTab?.url || 'https://unknown';
+
           const manifest = await client.generatePageAdaptation(
             pageUrl,
             textSummary,
             userPreferences
           );
 
-          let targetTabId = senderTabId;
-          if (!targetTabId) {
-            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-            targetTabId = activeTab?.id;
-          }
-
-          if (targetTabId) {
-            chrome.tabs.sendMessage(targetTabId, {
+          if (targetTab?.id) {
+            chrome.tabs.sendMessage(targetTab.id, {
               type: 'AI_ACTIONS_READY',
               payload: { manifest },
             });
@@ -63,7 +72,7 @@ chrome.runtime.onMessage.addListener(
 
     if (message.type === 'CHAT_QUERY_REQUEST') {
       const { question, pageUrl, textSummary } = message.payload;
-      const senderTabId = sender.tab?.id;
+      const isFromExtensionPage = sender.url?.startsWith('chrome-extension://');
 
       chrome.storage.local.get([SAHAYAK_CONSTANTS.STORAGE_KEYS.OLLAMA_URL], async items => {
         const configuredUrl =
@@ -76,11 +85,22 @@ chrome.runtime.onMessage.addListener(
         try {
           const res = await client.askPageQuestion(pageUrl, textSummary, question);
 
-          if (res.highlightSelector && senderTabId) {
-            chrome.tabs.sendMessage(senderTabId, {
-              type: 'HIGHLIGHT_TARGET_ELEMENT',
-              payload: { selector: res.highlightSelector, label: question },
-            });
+          if (res.highlightSelector) {
+            let targetTabId: number | undefined;
+            if (isFromExtensionPage) {
+               // Send highlight to the tab that matches the pageUrl we analyzed
+               const tabs = await chrome.tabs.query({ url: pageUrl });
+               targetTabId = tabs[0]?.id;
+            } else {
+               targetTabId = sender.tab?.id;
+            }
+
+            if (targetTabId) {
+              chrome.tabs.sendMessage(targetTabId, {
+                type: 'HIGHLIGHT_TARGET_ELEMENT',
+                payload: { selector: res.highlightSelector, label: question },
+              });
+            }
           }
 
           sendResponse({

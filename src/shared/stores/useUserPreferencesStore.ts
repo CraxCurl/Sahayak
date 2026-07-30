@@ -20,8 +20,8 @@ export const useUserPreferencesStore = create<PreferencesState>(set => ({
     enableTextSimplification: true,
     enableFormAutofill: true,
     fontSizeScale: 1.0,
-    ollamaUrl: 'http://localhost:11434',
-    ollamaModel: 'gemma3:4b',
+    ollamaUrl: import.meta.env.VITE_OLLAMA_URL || 'http://localhost:11434',
+    ollamaModel: import.meta.env.VITE_OLLAMA_MODEL || 'gemma3:4b',
   },
   updatePreferences: partial =>
     set(state => ({

@@ -82,6 +82,12 @@ export const PopupApp: React.FC = () => {
     setAiResult(null);
 
     try {
+      // Don't try to analyze extension internal pages
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.url?.startsWith('chrome-extension://') || tab?.url?.startsWith('chrome://')) {
+        throw new Error('Sahayak cannot analyze extension or system pages. Open a regular website and try again.');
+      }
+
       const response = (await MessageRouter.extractActiveTab()) as
         { success: boolean; payload?: ExtractedPageData; error?: string } | undefined;
       if (response && response.success && response.payload) {
@@ -91,11 +97,9 @@ export const PopupApp: React.FC = () => {
           response?.error || 'Extraction returned no payload. Is the content script active?'
         );
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error(err);
-      setErrorMessage(
-        'Failed to communicate with the page. Sahayak cannot run on Chrome internal pages (chrome://) or restricted sites. Try reloading a normal webpage.'
-      );
+      setErrorMessage(err.message || 'Failed to communicate with the page.');
     } finally {
       setIsExtracting(false);
     }
@@ -136,8 +140,12 @@ export const PopupApp: React.FC = () => {
       {/* Header */}
       <header className="flex items-center justify-between border-b border-slate-800/80 pb-3">
         <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-gradient-to-tr from-sky-500/20 to-indigo-500/20 text-sky-400 border border-sky-500/10">
-            <Sparkles className="w-5 h-5 animate-pulse" />
+          <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-800 flex items-center justify-center bg-slate-900">
+            <img
+              src="/assets/icons/logo small.jpeg"
+              alt="Sahayak Logo"
+              className="w-full h-full object-cover"
+            />
           </div>
           <div>
             <h1 className="font-bold text-base bg-gradient-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
