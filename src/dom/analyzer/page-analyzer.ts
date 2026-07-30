@@ -5,6 +5,7 @@ export interface PageSummaryResult extends ExtractedPageData {
   textSummary: string;
   formCount: number;
   interactiveSelectors: string[];
+  ariaRoleCount: number;
 }
 
 export class PageAnalyzer {
@@ -48,13 +49,15 @@ export class PageAnalyzer {
               : inputEl.closest('label');
             const placeholder =
               'placeholder' in inputEl ? (inputEl as HTMLInputElement).placeholder : '';
-            return (
-              (labelEl?.textContent || '').trim() ||
+            const nameOrId = id ? `#${id}` : inputEl.name ? `[name="${inputEl.name}"]` : '';
+            const labelText = (
+              labelEl?.textContent ||
               placeholder ||
               inputEl.name ||
               inputEl.getAttribute('aria-label') ||
               ''
             ).trim();
+            return nameOrId ? `${labelText} (${nameOrId})` : labelText;
           })
           .filter(Boolean)
       )
@@ -105,9 +108,10 @@ export class PageAnalyzer {
   public analyzeCurrentPage(): PageSummaryResult {
     const data = this.extractPageData();
     const headingsStr = data.headings.slice(0, 10).join(' | ');
-    const paragraphText = data.text.slice(0, 500);
+    const inputsStr = data.inputs.slice(0, 10).join(', ');
+    const paragraphText = data.text.slice(0, 800);
 
-    const textSummary = `Title: ${data.title}\nHeadings: ${headingsStr}\nParagraph Extract: ${paragraphText}`;
+    const textSummary = `Title: ${data.title}\nHeadings: ${headingsStr}\nForm Inputs: ${inputsStr}\nParagraph Extract: ${paragraphText}`;
 
     const interactiveSelectors = Array.from(
       document.querySelectorAll('button, a[href], input[type="submit"]')
@@ -122,12 +126,15 @@ export class PageAnalyzer {
         return el.tagName.toLowerCase();
       });
 
+    const ariaRoleCount = document.querySelectorAll('[role]').length;
+
     return {
       ...data,
       pageUrl: data.url,
       textSummary,
       formCount: data.forms.length,
       interactiveSelectors,
+      ariaRoleCount,
     };
   }
 }
