@@ -19,7 +19,7 @@ export const BaseActionSchema = z.object({
 
 export const HighlightActionSchema = BaseActionSchema.extend({
   type: z.literal('HIGHLIGHT_ELEMENT'),
-  color: z.string().default('#fef08a'),
+  color: z.string().default('#38bdf8'),
   label: z.string().optional(),
 });
 
@@ -51,18 +51,35 @@ export const AccessibilityEnhanceActionSchema = BaseActionSchema.extend({
   ariaLabelFixes: z.record(z.string(), z.string()).optional(),
 });
 
+export const SahayakActionSchema = z.discriminatedUnion('type', [
+  HighlightActionSchema,
+  HideActionSchema,
+  SimplifyTextActionSchema,
+  InjectCSSActionSchema,
+  AutofillActionSchema,
+  AccessibilityEnhanceActionSchema,
+]);
+
 export const SahayakActionManifestZodSchema = z.object({
   version: z.string().default('1.0'),
   pageUrl: z.string(),
   summary: z.string(),
-  actions: z.array(
-    z.discriminatedUnion('type', [
-      HighlightActionSchema,
-      HideActionSchema,
-      SimplifyTextActionSchema,
-      InjectCSSActionSchema,
-      AutofillActionSchema,
-      AccessibilityEnhanceActionSchema,
-    ])
-  ),
+  actions: z.array(SahayakActionSchema),
 });
+
+export const ChatMessageSchema = z.object({
+  id: z.string(),
+  role: z.enum(['user', 'assistant', 'system']),
+  content: z.string(),
+  timestamp: z.number(),
+});
+
+export const ChatResponseSchema = z.object({
+  reply: z.string(),
+  suggestedActions: z.array(SahayakActionSchema).optional(),
+});
+
+export type SahayakActionSchemaType = z.infer<typeof SahayakActionSchema>;
+export type SahayakActionManifestSchemaType = z.infer<typeof SahayakActionManifestZodSchema>;
+export type ChatMessageSchemaType = z.infer<typeof ChatMessageSchema>;
+export type ChatResponseSchemaType = z.infer<typeof ChatResponseSchema>;

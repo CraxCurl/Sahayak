@@ -46,7 +46,8 @@ export class PageAnalyzer {
             const labelEl = id
               ? document.querySelector(`label[for="${CSS.escape(id)}"]`)
               : inputEl.closest('label');
-            const placeholder = 'placeholder' in inputEl ? (inputEl as HTMLInputElement).placeholder : '';
+            const placeholder =
+              'placeholder' in inputEl ? (inputEl as HTMLInputElement).placeholder : '';
             return (
               (labelEl?.textContent || '').trim() ||
               placeholder ||

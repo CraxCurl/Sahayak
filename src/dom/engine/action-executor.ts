@@ -17,14 +17,19 @@ export class SafeDOMExecutor {
    * Execute all actions contained in a SahayakActionManifest emitted by Gemma 3.
    */
   public executeManifest(manifest: SahayakActionManifest): void {
-    console.log(`[Sahayak DOM Engine] Executing ${manifest.actions.length} AI actions from manifest...`);
+    console.log(
+      `[Sahayak DOM Engine] Executing ${manifest.actions.length} AI actions from manifest...`
+    );
     this.cssInjector.injectBaseStyles();
 
     for (const action of manifest.actions) {
       try {
         this.executeSingleAction(action);
       } catch (err) {
-        console.error(`[Sahayak DOM Engine] Failed executing action ${action.id} (${action.type}):`, err);
+        console.error(
+          `[Sahayak DOM Engine] Failed executing action ${action.id} (${action.type}):`,
+          err
+        );
       }
     }
   }
@@ -34,14 +39,18 @@ export class SafeDOMExecutor {
    */
   public executeSingleAction(action: SahayakAction): void {
     const targets = document.querySelectorAll(action.selector);
-    if (targets.length === 0 && action.type !== 'INJECT_CSS' && action.type !== 'ACCESSIBILITY_ENHANCE') {
+    if (
+      targets.length === 0 &&
+      action.type !== 'INJECT_CSS' &&
+      action.type !== 'ACCESSIBILITY_ENHANCE'
+    ) {
       console.warn(`[Sahayak DOM Engine] Target selector not found: "${action.selector}"`);
       return;
     }
 
     switch (action.type) {
       case 'HIGHLIGHT_ELEMENT':
-        targets.forEach((el) => {
+        targets.forEach(el => {
           const htmlEl = el as HTMLElement;
           htmlEl.style.outline = `3px solid ${action.color || '#38bdf8'}`;
           htmlEl.style.outlineOffset = '2px';
@@ -55,7 +64,7 @@ export class SafeDOMExecutor {
         break;
 
       case 'HIDE_ELEMENT':
-        targets.forEach((el) => {
+        targets.forEach(el => {
           const htmlEl = el as HTMLElement;
           if (!htmlEl.hasAttribute('data-sahayak-prev-display')) {
             htmlEl.setAttribute('data-sahayak-prev-display', htmlEl.style.display || '');
@@ -67,11 +76,13 @@ export class SafeDOMExecutor {
         break;
 
       case 'SIMPLIFY_TEXT':
-        targets.forEach((el) => {
+        targets.forEach(el => {
           if (!this.originalContentMap.has(el)) {
             this.originalContentMap.set(el, el.innerHTML);
           }
-          const badgeLabel = action.originalTextSnippet ? ` (Simplified from: "${action.originalTextSnippet.slice(0, 30)}...")` : '';
+          const badgeLabel = action.originalTextSnippet
+            ? ` (Simplified from: "${action.originalTextSnippet.slice(0, 30)}...")`
+            : '';
           el.innerHTML = `<span class="sahayak-simplified-badge" title="Sahayak Simplified Text${badgeLabel}">${action.simplifiedContent}</span>`;
           el.setAttribute('data-sahayak-simplified', 'true');
           this.trackModifiedElement(el);
@@ -86,8 +97,12 @@ export class SafeDOMExecutor {
         if (action.fieldValues) {
           Object.entries(action.fieldValues).forEach(([fieldSelector, value]) => {
             const inputs = document.querySelectorAll(fieldSelector);
-            inputs.forEach((inputEl) => {
-              if (inputEl instanceof HTMLInputElement || inputEl instanceof HTMLTextAreaElement || inputEl instanceof HTMLSelectElement) {
+            inputs.forEach(inputEl => {
+              if (
+                inputEl instanceof HTMLInputElement ||
+                inputEl instanceof HTMLTextAreaElement ||
+                inputEl instanceof HTMLSelectElement
+              ) {
                 inputEl.value = value;
                 inputEl.classList.add('sahayak-autofilled-field');
                 inputEl.setAttribute('data-sahayak-autofilled', 'true');
@@ -162,14 +177,14 @@ export class SafeDOMExecutor {
     console.log('[Sahayak DOM Engine] Reverting all webpage adaptations...');
 
     // Revert simplified text nodes
-    this.modifiedElements.forEach((el) => {
+    this.modifiedElements.forEach(el => {
       if (this.originalContentMap.has(el)) {
         el.innerHTML = this.originalContentMap.get(el)!;
       }
     });
 
     // Revert highlights
-    document.querySelectorAll('[data-sahayak-highlight]').forEach((el) => {
+    document.querySelectorAll('[data-sahayak-highlight]').forEach(el => {
       const htmlEl = el as HTMLElement;
       htmlEl.style.outline = '';
       htmlEl.style.outlineOffset = '';
@@ -179,7 +194,7 @@ export class SafeDOMExecutor {
     });
 
     // Revert hidden elements
-    document.querySelectorAll('[data-sahayak-hidden]').forEach((el) => {
+    document.querySelectorAll('[data-sahayak-hidden]').forEach(el => {
       const htmlEl = el as HTMLElement;
       const prevDisplay = htmlEl.getAttribute('data-sahayak-prev-display');
       htmlEl.style.display = prevDisplay || '';
@@ -188,7 +203,7 @@ export class SafeDOMExecutor {
     });
 
     // Revert autofilled input fields
-    document.querySelectorAll('[data-sahayak-autofilled]').forEach((el) => {
+    document.querySelectorAll('[data-sahayak-autofilled]').forEach(el => {
       el.classList.remove('sahayak-autofilled-field');
       el.removeAttribute('data-sahayak-autofilled');
     });

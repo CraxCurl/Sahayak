@@ -87,4 +87,3 @@ export type ExtensionMessage =
       payload: MessagePayloadMap['HIGHLIGHT_TARGET_ELEMENT'];
       senderTabId?: number;
     };
-

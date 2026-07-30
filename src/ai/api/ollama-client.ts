@@ -1,14 +1,17 @@
 import { GEMMA3_PROMPTS } from '../prompts/gemma3-prompts';
 import { parseAndValidateGemmaOutput } from '../parser/json-parser';
+import { AIDecisionEngine } from '../decision/decision-engine';
 import { SahayakActionManifest } from '@shared/types/ai-actions';
 
 export class OllamaGemmaClient {
   private baseUrl: string;
   private model: string;
+  private decisionEngine: AIDecisionEngine;
 
   constructor(baseUrl = 'http://localhost:11434', model = 'gemma3:4b') {
     this.baseUrl = baseUrl;
     this.model = model;
+    this.decisionEngine = new AIDecisionEngine();
   }
 
   public async generatePageAdaptation(
@@ -41,7 +44,10 @@ export class OllamaGemmaClient {
 
       const data = await response.json();
       const rawResponse = data.response || '';
-      return parseAndValidateGemmaOutput(rawResponse);
+      const rawManifest = parseAndValidateGemmaOutput(rawResponse);
+
+      // Process raw manifest through AI Decision Engine (filtering, conflict resolution, ranking)
+      return this.decisionEngine.processManifest(rawManifest);
     } catch (err) {
       console.warn(
         '[Ollama Client] Could not connect to local Ollama server, falling back to mock response:',
@@ -79,7 +85,9 @@ export class OllamaGemmaClient {
       const rawResponse = data.response || '{}';
       const parsed = JSON.parse(rawResponse);
       return {
-        answer: parsed.answer || 'I evaluated the page context but could not generate a conclusive answer.',
+        answer:
+          parsed.answer ||
+          'I evaluated the page context but could not generate a conclusive answer.',
         highlightSelector: parsed.highlightSelector || undefined,
       };
     } catch (err) {
@@ -92,17 +100,24 @@ export class OllamaGemmaClient {
     const qLower = question.toLowerCase();
     if (qLower.includes('upload') || qLower.includes('document')) {
       return {
-        answer: 'You can upload your documents in the "Document Upload Section" located near the bottom of the scholarship application form.',
+        answer:
+          'You can upload your documents in the "Document Upload Section" located near the bottom of the scholarship application form.',
         highlightSelector: '#btn-upload-docs, input[type="file"], .document-upload-box',
       };
-    } else if (qLower.includes('required') || qLower.includes('field') || qLower.includes('input')) {
+    } else if (
+      qLower.includes('required') ||
+      qLower.includes('field') ||
+      qLower.includes('input')
+    ) {
       return {
-        answer: 'The required fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.',
+        answer:
+          'The required fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.',
         highlightSelector: '#full-name, #aadhaar-number, #annual-income',
       };
     } else if (qLower.includes('about') || qLower.includes('what')) {
       return {
-        answer: 'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.',
+        answer:
+          'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.',
         highlightSelector: 'header, h1',
       };
     }
@@ -113,7 +128,7 @@ export class OllamaGemmaClient {
   }
 
   private getFallbackMockManifest(pageUrl: string): SahayakActionManifest {
-    return {
+    const rawMock: SahayakActionManifest = {
       version: '1.0',
       pageUrl,
       summary: 'Fallback response generated locally (Ollama offline)',
@@ -128,5 +143,6 @@ export class OllamaGemmaClient {
         },
       ],
     };
+    return this.decisionEngine.processManifest(rawMock);
   }
 }

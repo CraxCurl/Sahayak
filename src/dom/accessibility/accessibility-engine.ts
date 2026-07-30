@@ -96,7 +96,7 @@ export class AccessibilityEngine {
    */
   public applyAriaFixes(fixes: Record<string, string>): void {
     Object.entries(fixes).forEach(([selector, ariaLabel]) => {
-      document.querySelectorAll(selector).forEach((el) => {
+      document.querySelectorAll(selector).forEach(el => {
         el.setAttribute('aria-label', ariaLabel);
         el.setAttribute('data-sahayak-aria-fixed', 'true');
       });
@@ -111,7 +111,7 @@ export class AccessibilityEngine {
     this.setFontScale(1.0);
     this.setEnhancedFocus(false);
 
-    document.querySelectorAll('[data-sahayak-aria-fixed]').forEach((el) => {
+    document.querySelectorAll('[data-sahayak-aria-fixed]').forEach(el => {
       el.removeAttribute('aria-label');
       el.removeAttribute('data-sahayak-aria-fixed');
     });
