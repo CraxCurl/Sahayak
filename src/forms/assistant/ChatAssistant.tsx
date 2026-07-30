@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Send, Sparkles, X, Target, HelpCircle, Bot, User, Minimize2 } from 'lucide-react';
 import { PageAnalyzer } from '@dom/analyzer/page-analyzer';
 import { ChatMessage } from '@shared/types/messages';
+import { MessageRouter } from '@extension/messaging/message-router';
 
 interface ChatAssistantProps {
   embedded?: boolean;

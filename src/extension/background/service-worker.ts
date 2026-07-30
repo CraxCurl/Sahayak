@@ -19,7 +19,6 @@ chrome.runtime.onMessage.addListener(
 
     if (message.type === 'AI_RUN_ANALYSIS') {
       const { textSummary, userPreferences } = message.payload;
-      const senderTabId = sender.tab?.id;
       const isFromExtensionPage = sender.url?.startsWith('chrome-extension://');
 
       // Load dynamic host URL from chrome storage, .env configuration, or default fallback
