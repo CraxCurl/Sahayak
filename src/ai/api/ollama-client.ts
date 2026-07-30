@@ -119,49 +119,84 @@ export class OllamaGemmaClient {
       }
 
       const data = await response.json();
-      const rawResponse = data.response || '{}';
-      const parsed = JSON.parse(rawResponse);
-      return {
-        answer:
-          parsed.answer ||
-          'I evaluated the page context but could not generate a conclusive answer.',
-        highlightSelector: parsed.highlightSelector || undefined,
-      };
+      const rawResponse = (data.response || '').trim();
+
+      let answer = '';
+      let highlightSelector: string | undefined = undefined;
+
+      try {
+        const cleanedJson = rawResponse.replace(/```json/gi, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(cleanedJson);
+        answer = parsed.answer || parsed.reply || parsed.summary || rawResponse;
+        highlightSelector = parsed.highlightSelector || undefined;
+      } catch {
+        // If Gemma 3 returned text instead of valid JSON, use the response text directly as answer!
+        answer = rawResponse || `I evaluated your query on ${pageUrl}.`;
+      }
+
+      return { answer, highlightSelector };
     } catch (err) {
       console.warn('[Ollama Client] Chat query fallback triggered:', err);
-      return this.getFallbackChatAnswer(question);
+      return this.getFallbackChatAnswer(pageUrl, textSummary, question);
     }
   }
 
-  private getFallbackChatAnswer(question: string): { answer: string; highlightSelector?: string } {
+  private getFallbackChatAnswer(
+    pageUrl: string,
+    textSummary: string,
+    question: string
+  ): { answer: string; highlightSelector?: string } {
     const qLower = question.toLowerCase();
-    if (qLower.includes('upload') || qLower.includes('document')) {
-      return {
-        answer:
-          'You can upload your documents in the "Document Upload Section" located near the bottom of the scholarship application form.',
-        highlightSelector: '#btn-upload-docs, input[type="file"], .document-upload-box',
-      };
+
+    let domain = 'this website';
+    try {
+      const parsedUrl = new URL(pageUrl);
+      domain = parsedUrl.hostname.replace('www.', '');
+    } catch {
+      domain = pageUrl || 'this website';
+    }
+
+    const titleLine =
+      (textSummary || '')
+        .split('\n')
+        .find(l => l.toLowerCase().startsWith('page title:') || l.toLowerCase().startsWith('title:')) ||
+      '';
+    const cleanTitle = titleLine.replace(/^(page title:|title:)/i, '').trim() || domain;
+
+    const headingsLine =
+      (textSummary || '').split('\n').find(l => l.toLowerCase().includes('headings:')) || '';
+    const cleanHeadings = headingsLine.replace(/^(all headings:|headings:)/i, '').trim();
+
+    let answer = `I analyzed "${cleanTitle}" (${domain}).`;
+    let highlightSelector: string | undefined = undefined;
+
+    if (qLower.includes('upload') || qLower.includes('document') || qLower.includes('file')) {
+      answer = `Checking file upload options on "${cleanTitle}". Look for upload buttons or form dropzones on ${domain}.`;
+      highlightSelector = '#btn-upload-docs, input[type="file"], .document-upload-box, button';
     } else if (
       qLower.includes('required') ||
       qLower.includes('field') ||
-      qLower.includes('input')
+      qLower.includes('input') ||
+      qLower.includes('form')
     ) {
-      return {
-        answer:
-          'The required fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.',
-        highlightSelector: '#full-name, #aadhaar-number, #annual-income',
-      };
-    } else if (qLower.includes('about') || qLower.includes('what')) {
-      return {
-        answer:
-          'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.',
-        highlightSelector: 'header, h1',
-      };
+      answer = `Scanned form fields on "${cleanTitle}" (${domain}). Ensure all highlighted mandatory inputs are accurately filled out.`;
+      highlightSelector = 'input[required], select[required], textarea[required], input';
+    } else if (
+      qLower.includes('about') ||
+      qLower.includes('what') ||
+      qLower.includes('summary') ||
+      qLower.includes('explain')
+    ) {
+      answer = `This page is "${cleanTitle}" on ${domain}. ${
+        cleanHeadings ? 'Main topics: ' + cleanHeadings.slice(0, 180) + '.' : ''
+      }`;
+      highlightSelector = 'h1, h2, header, main';
+    } else {
+      answer = `Sahayak AI Assistant evaluated your query "${question}" for "${cleanTitle}" (${domain}).`;
+      highlightSelector = 'h1, form, button';
     }
-    return {
-      answer: `Sahayak AI Assistant analyzed your query "${question}". Make sure to fill in all mandatory fields before submitting!`,
-      highlightSelector: 'form, button[type="submit"]',
-    };
+
+    return { answer, highlightSelector };
   }
 
   private getFallbackMockManifest(pageUrl: string): SahayakActionManifest {
