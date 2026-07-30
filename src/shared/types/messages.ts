@@ -1,5 +1,23 @@
 import { SahayakActionManifest } from './ai-actions';
 
+export interface ExtractedForm {
+  id: string;
+  name: string;
+  action: string;
+  method: string;
+  fieldCount: number;
+}
+
+export interface ExtractedPageData {
+  url: string;
+  title: string;
+  headings: string[];
+  buttons: string[];
+  inputs: string[];
+  forms: ExtractedForm[];
+  text: string;
+}
+
 export type MessageType =
   | 'DOM_ANALYZE_PAGE'
   | 'DOM_PAGE_ANALYZED'
@@ -21,12 +39,7 @@ export interface ChatMessage {
 
 export interface MessagePayloadMap {
   DOM_ANALYZE_PAGE: { pageUrl: string; forceFresh?: boolean };
-  DOM_PAGE_ANALYZED: {
-    pageUrl: string;
-    textSummary: string;
-    formCount: number;
-    interactiveSelectors: string[];
-  };
+  DOM_PAGE_ANALYZED: ExtractedPageData;
   AI_RUN_ANALYSIS: { textSummary: string; userPreferences: Record<string, unknown> };
   AI_ACTIONS_READY: { manifest: SahayakActionManifest };
   SETTINGS_UPDATE: { theme: 'light' | 'dark'; gemmaApiKey: string };

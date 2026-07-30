@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener(
       return true;
     }
 
-    if (message.type === 'AI_RUN_ANALYSIS') {
+        if (message.type === 'AI_RUN_ANALYSIS') {
       const { textSummary, userPreferences } = message.payload;
       const senderTabId = sender.tab?.id;
       const pageUrl = sender.tab?.url || 'https://unknown';
@@ -37,12 +37,20 @@ chrome.runtime.onMessage.addListener(
             textSummary,
             userPreferences
           );
-          if (senderTabId) {
-            chrome.tabs.sendMessage(senderTabId, {
+
+          let targetTabId = senderTabId;
+          if (!targetTabId) {
+            const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+            targetTabId = activeTab?.id;
+          }
+
+          if (targetTabId) {
+            chrome.tabs.sendMessage(targetTabId, {
               type: 'AI_ACTIONS_READY',
               payload: { manifest },
             });
           }
+
           sendResponse({ success: true, manifest });
         } catch (err) {
           console.error('[Sahayak Background Worker] Ollama analysis error:', err);
