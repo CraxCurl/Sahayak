@@ -55,8 +55,8 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     setInputQuery('');
     setIsLoading(true);
 
-    let summaryData;
-    let pageUrl;
+    let summaryData: any = undefined;
+    let pageUrl: string = '';
 
     try {
       // If we are in the dashboard/options page, we need to extract from the active web tab
@@ -97,14 +97,14 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
               };
               setMessages(prev => [...prev, aiMsg]);
             } else {
-              handleFallbackResponse(text);
+              handleFallbackResponse(text, summaryData);
             }
           }
         );
       } else {
         setTimeout(() => {
           setIsLoading(false);
-          handleFallbackResponse(text);
+          handleFallbackResponse(text, summaryData);
         }, 600);
       }
     } catch (err: any) {
@@ -119,24 +119,45 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
     }
   };
 
-  const handleFallbackResponse = (userQuery: string) => {
+  const handleFallbackResponse = (userQuery: string, summaryData?: any) => {
     const lower = userQuery.toLowerCase();
-    let text =
-      'I parsed the webpage content. Ensure all required details are accurate before submitting!';
+    const currentSummary = summaryData || analyzerRef.current.analyzeCurrentPage();
+    const pageTitle = currentSummary?.title || document.title || 'Current Webpage';
+    const headings = currentSummary?.headings || [];
+    const textExtract = currentSummary?.textSummary || currentSummary?.text || '';
+
+    let text = `Parsed context for "${pageTitle}". Review the main sections and required fields.`;
     let highlightSelector: string | undefined = undefined;
 
-    if (lower.includes('upload') || lower.includes('document')) {
-      text =
-        'You can upload your documents in the "Document Upload Section" located near the bottom of the form.';
-      highlightSelector = '#btn-upload-docs, input[type="file"], .document-upload-box';
-    } else if (lower.includes('required') || lower.includes('field')) {
-      text =
-        'Mandatory fields on this portal are: Applicant Full Name, Aadhaar Number, Annual Family Income, and Income Certificate.';
-      highlightSelector = '#full-name, #aadhaar-number, #annual-income';
-    } else if (lower.includes('about') || lower.includes('what')) {
-      text =
-        'This page is the National Higher Education & Skill Scholarship Application Portal for session 2026-27.';
-      highlightSelector = 'header, h1';
+    if (lower.includes('upload') || lower.includes('document') || lower.includes('file')) {
+      const fileInputs = document.querySelectorAll('input[type="file"], #btn-upload-docs, .document-upload-box');
+      if (fileInputs.length > 0) {
+        text = `Found document upload options on "${pageTitle}". Click "Highlight Element on Page" below to locate them.`;
+        highlightSelector = '#btn-upload-docs, input[type="file"], .document-upload-box';
+      } else {
+        text = `Checked "${pageTitle}" for document attachments. Upload controls appear in form sections.`;
+        highlightSelector = 'form, input';
+      }
+    } else if (lower.includes('required') || lower.includes('field') || lower.includes('input') || lower.includes('form')) {
+      const reqInputs = Array.from(document.querySelectorAll('input[required], select[required], textarea[required]'));
+      if (reqInputs.length > 0) {
+        const fieldNames = reqInputs
+          .map(el => el.getAttribute('placeholder') || el.id || el.getAttribute('name'))
+          .filter(Boolean)
+          .slice(0, 4);
+        text = `Required fields detected on this page: ${fieldNames.join(', ') || 'Mandatory inputs'}.`;
+        highlightSelector = 'input[required], select[required], textarea[required], input';
+      } else {
+        text = `Scanned form fields on "${pageTitle}". Ensure all highlighted inputs are filled out.`;
+        highlightSelector = 'input, select, textarea';
+      }
+    } else if (lower.includes('about') || lower.includes('what') || lower.includes('summary') || lower.includes('explain')) {
+      const topHeadings = Array.isArray(headings) ? headings.slice(0, 3).join(' | ') : '';
+      text = `This page is "${pageTitle}". ${topHeadings ? 'Key sections: ' + topHeadings + '.' : ''} Overview: ${textExtract.slice(0, 250)}...`;
+      highlightSelector = 'h1, h2, header, main';
+    } else {
+      text = `Analyzed "${pageTitle}". ${textExtract.slice(0, 200)}...`;
+      highlightSelector = 'h1, form, button';
     }
 
     const aiMsg: ChatMessage = {
@@ -151,22 +172,31 @@ export const ChatAssistant: React.FC<ChatAssistantProps> = ({ embedded = false, 
 
   const handleTriggerHighlight = (selector?: string) => {
     if (!selector) return;
+
+    // 1. Immediately highlight in active DOM context
+    const els = document.querySelectorAll(selector);
+    if (els.length > 0) {
+      const first = els[0] as HTMLElement;
+      first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      els.forEach(el => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.transition = 'all 0.3s ease-in-out';
+        htmlEl.style.outline = '4px solid #38bdf8';
+        htmlEl.style.outlineOffset = '3px';
+        htmlEl.style.boxShadow = '0 0 25px rgba(56, 189, 248, 0.8)';
+        setTimeout(() => {
+          htmlEl.style.outline = '';
+          htmlEl.style.boxShadow = '';
+        }, 4000);
+      });
+    }
+
+    // 2. Broadcast IPC message to active extension tab
     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
       chrome.runtime.sendMessage({
         type: 'HIGHLIGHT_TARGET_ELEMENT',
         payload: { selector },
       });
-    } else {
-      const els = document.querySelectorAll(selector);
-      if (els.length > 0) {
-        els[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-        (els[0] as HTMLElement).style.outline = '4px solid #38bdf8';
-        (els[0] as HTMLElement).style.boxShadow = '0 0 20px rgba(56, 189, 248, 0.6)';
-        setTimeout(() => {
-          (els[0] as HTMLElement).style.outline = '';
-          (els[0] as HTMLElement).style.boxShadow = '';
-        }, 3000);
-      }
     }
   };
 

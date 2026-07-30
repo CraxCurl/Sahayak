@@ -79,6 +79,15 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       confidence: 1.0,
       reasoning: 'Console manual action',
     }),
+  autofill: (fieldValues: Record<string, string>) =>
+    executor.executeSingleAction({
+      id: `console-act-${Date.now()}`,
+      type: 'AUTOFILL_FORM',
+      selector: 'form',
+      confidence: 1.0,
+      fieldValues,
+      reasoning: 'Console autofill action',
+    }),
   injectCSS: (cssRules: string, scopeId = 'console-injected') =>
     executor.getCSSInjector().injectCSS(scopeId, cssRules),
   setHighContrast: (enable: boolean) =>
@@ -88,10 +97,50 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
   revertAll: () => executor.revertAll(),
   analyzePage: () => analyzer.extractPageData(),
   executeManifest: (manifest: any) => executor.executeManifest(manifest),
+  ask: (question: string) => {
+    console.log(`[Sahayak DevTools] Asking: "${question}"...`);
+    const pageData = analyzer.analyzeCurrentPage();
+    chrome.runtime.sendMessage(
+      {
+        type: 'CHAT_QUERY_REQUEST',
+        payload: {
+          question,
+          pageUrl: window.location.href,
+          textSummary: pageData.textSummary,
+        },
+      },
+      res => {
+        if (res && res.success) {
+          console.log(`[Sahayak DevTools AI Response]:\n${res.answer}`);
+          if (res.highlightSelector) {
+            console.log(`[Sahayak DevTools] Highlighting target: ${res.highlightSelector}`);
+            executor.highlightAndScrollTo(res.highlightSelector);
+          }
+        } else {
+          console.warn('[Sahayak DevTools] Local query fallback executed.');
+          executor.highlightAndScrollTo('h1, header, form');
+        }
+      }
+    );
+  },
+  help: () => {
+    console.group('🚀 Sahayak DevTools Console Commands');
+    console.log('window.Sahayak.ask("Where do I upload documents?") -> Query page and highlight element');
+    console.log('window.Sahayak.highlight(selector, color)         -> Highlight and scroll to element');
+    console.log('window.Sahayak.simplifyText(selector, text)      -> Replace text with simplified badge');
+    console.log('window.Sahayak.hideElement(selector)            -> Hide unwanted element');
+    console.log('window.Sahayak.injectCSS(cssRules)              -> Inject dynamic CSS into head');
+    console.log('window.Sahayak.autofill({ "#full-name": "John" }) -> Prefill form inputs');
+    console.log('window.Sahayak.setHighContrast(true/false)     -> Toggle high contrast');
+    console.log('window.Sahayak.setFontScale(1.1)                -> Adjust font scale');
+    console.log('window.Sahayak.revertAll()                      -> Revert all DOM changes');
+    console.log('window.Sahayak.analyzePage()                    -> Print extracted page JSON');
+    console.groupEnd();
+  },
 };
 
 console.log(
-  '[Sahayak DevTools API] Available on window.Sahayak. Use window.Sahayak.highlight(), window.Sahayak.injectCSS(), window.Sahayak.revertAll() in console!'
+  '[Sahayak DevTools API] Loaded on window.Sahayak. Run window.Sahayak.help() in console for list of commands!'
 );
 
 // Auto analyze page on initial load if extension is active
